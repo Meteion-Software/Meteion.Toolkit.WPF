@@ -1,0 +1,22 @@
+﻿<Window x:Class="Meteion.Toolkit.WPF.SampleApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Meteion.Toolkit.WPF.SampleApp"
+        mc:Ignorable="d"
+        Title="Demo Window" Height="450" Width="800" Loaded="Window_Loaded">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0">
+            <Run Text="MainWindowViewModel Scope ID:"/>
+            <Run Text="{Binding ScopeId}" />
+        </TextBlock>
+        
+        <Frame Grid.Row="1" x:Name="ShellFrame" NavigationUIVisibility="Hidden" />
+    </Grid>
+</Window>

@@ -1,0 +1,9 @@
+﻿<meteion:WpfGenericHostApplication x:Class="Meteion.Toolkit.WPF.SampleApp.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Meteion.Toolkit.WPF.SampleApp"
+             xmlns:meteion="http://wpf.meteion.ca/winfx/xaml">
+    <meteion:WpfGenericHostApplication.Resources>
+         
+    </meteion:WpfGenericHostApplication.Resources>
+</meteion:WpfGenericHostApplication>

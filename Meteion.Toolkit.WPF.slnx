@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="samples/Meteion.Toolkit.WPF.SampleApp/Meteion.Toolkit.WPF.SampleApp.csproj" />
+  <Project Path="src/Meteion.Toolkit.MVVM/Meteion.Toolkit.WPF.MVVM.csproj" />
+  <Project Path="src/Meteion.Toolkit.WPF.Hosting/Meteion.Toolkit.WPF.Hosting.csproj" />
+  <Project Path="src/Meteion.Toolkit.WPF/Meteion.Toolkit.WPF.csproj" />
+  <Project Path="tests/Meteion.Toolkit.WPF.MVVM.Tests/Meteion.Toolkit.WPF.MVVM.Tests.csproj" />
+</Solution>
