@@ -3,8 +3,10 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="samples/Meteion.Toolkit.WPF.SampleApp/Meteion.Toolkit.WPF.SampleApp.csproj" />
+  <Project Path="src/Meteion.Toolkit.Localization.Abstractions/Meteion.Toolkit.Localization.Abstractions.csproj" Id="be403e23-6f74-4181-9203-2e2921afbf70" />
   <Project Path="src/Meteion.Toolkit.MVVM/Meteion.Toolkit.WPF.MVVM.csproj" />
   <Project Path="src/Meteion.Toolkit.WPF.Hosting/Meteion.Toolkit.WPF.Hosting.csproj" />
+  <Project Path="src/Meteion.Toolkit.WPF.Localization/Meteion.Toolkit.WPF.Localization.csproj" Id="4a4e4822-ac0f-4c58-b076-cdb0c593d1ce" />
   <Project Path="src/Meteion.Toolkit.WPF/Meteion.Toolkit.WPF.csproj" />
   <Project Path="tests/Meteion.Toolkit.WPF.MVVM.Tests/Meteion.Toolkit.WPF.MVVM.Tests.csproj" />
 </Solution>

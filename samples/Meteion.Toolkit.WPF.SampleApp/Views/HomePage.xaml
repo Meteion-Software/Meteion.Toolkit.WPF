@@ -4,17 +4,21 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:Meteion.Toolkit.WPF.SampleApp.Views"
+      xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization" xmlns:viewmodels="clr-namespace:Meteion.Toolkit.WPF.SampleApp.ViewModels" 
+      d:DataContext="{d:DesignInstance Type=viewmodels:HomePageViewModel}"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
       Title="HomePage">
 
     <Grid>
-        <StackPanel>
-            <TextBlock Text="Welcome to the home page!" />
+        <StackPanel Margin="10">
+            <TextBlock Text="{lx:LocalizedValue HomePage_WelcomeMessage}" />
             <TextBlock>
-                <Run Text="Scope ID:"/>
+                <Run Text="{lx:LocalizedValue ScopeID}"/><Run Text=":" />
                 <Run Text="{Binding ScopeId, Mode=OneWay}" />
             </TextBlock>
+
+            <Button Content="{lx:LocalizedValue ChangeLanguage}" Margin="5" Command="{Binding SwitchLanguageCommand}" />
         </StackPanel>
     </Grid>
 </Page>

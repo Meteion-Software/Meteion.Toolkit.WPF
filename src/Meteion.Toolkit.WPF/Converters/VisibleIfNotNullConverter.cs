@@ -10,7 +10,7 @@ public sealed class VisibleIfNotNullConverter : IValueConverter
 
     public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
     {
-        return value is not null ? Visibility.Visible : Visibility.Collapsed;
+        return value != null ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)

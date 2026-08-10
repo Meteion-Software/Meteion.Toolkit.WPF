@@ -1,6 +1,7 @@
 ﻿
 using Meteion.Toolkit.MVVM.Services;
 using Meteion.Toolkit.WPF.Hosting;
+using Meteion.Toolkit.WPF.Localization;
 using Meteion.Toolkit.WPF.MVVM;
 using Meteion.Toolkit.WPF.SampleApp.Services;
 using Meteion.Toolkit.WPF.SampleApp.ViewModels;
@@ -41,6 +42,13 @@ public static class Program
         {
             // We can also manually add our window <> viewmodel mappings here.
             builder.Add<MainWindowViewModel, MainWindow>();
+        });
+
+        builder.Services.AddWpfLocalization(conf =>
+        {
+            conf.MissingKeyBehavior = Toolkit.Localization.Abstractions.MissingResourceBehavior.ThrowException;
+            conf.DefaultAssembly = typeof(Program).Assembly;
+            conf.DefaultCulture = new System.Globalization.CultureInfo("en-CA");
         });
 
         builder.Logging.AddConsole();

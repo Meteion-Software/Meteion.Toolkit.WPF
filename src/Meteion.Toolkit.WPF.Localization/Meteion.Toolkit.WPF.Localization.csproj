@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	  <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Meteion.Toolkit.Localization.Abstractions\Meteion.Toolkit.Localization.Abstractions.csproj" />
+    <ProjectReference Include="..\Meteion.Toolkit.MVVM\Meteion.Toolkit.WPF.MVVM.csproj" />
+    <ProjectReference Include="..\Meteion.Toolkit.WPF.Hosting\Meteion.Toolkit.WPF.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Converters\" />
+  </ItemGroup>
+
+</Project>
