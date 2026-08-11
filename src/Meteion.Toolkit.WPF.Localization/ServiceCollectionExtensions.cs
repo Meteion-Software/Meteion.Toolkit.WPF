@@ -13,9 +13,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILocalizationService, LocalizationService>();
         services.AddSingleton<IXamlAssemblyResolver,  XamlAssemblyResolver>();
 
+        // AddOptions() unconditionally, so IOptions<LocalizationOptions> resolves with
+        // its defaults even when the caller doesn't pass a configure callback at all —
+        // Configure<T> alone only registers IOptions<T> when it's actually called.
+        services.AddOptions<LocalizationOptions>();
+
         if (configure is not null)
         {
-            services.Configure<LocalizationOptions>(configure);
+            services.Configure(configure);
         }
 
         return services;

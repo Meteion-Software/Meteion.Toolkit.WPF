@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Exists purely so this test assembly has a compiled XAML resource, which forces
+        the build to generate an embedded "*.g.resources" manifest resource alongside our
+        own TestStrings.resx. ResxLocalizationProviderTests relies on both being present
+        to verify the ".g.resources" exclusion filter actually does something, rather than
+        just happening to pass because there was nothing to exclude.
+    -->
+</ResourceDictionary>

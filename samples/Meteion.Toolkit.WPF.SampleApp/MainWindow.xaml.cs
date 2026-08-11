@@ -32,6 +32,9 @@ namespace Meteion.Toolkit.WPF.SampleApp
         {
             // Navigate to the home page when the window is loaded.
             await _navService.NavigateTo<HomePageViewModel>();
+
+            // Bind the window title to the shell frame title
+            
         }
     }
 }

@@ -13,9 +13,9 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-    <PackageReference Include="Xunit.StaFact" Version="1.2.69" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.10" />
+    <PackageReference Include="Xunit.StaFact" Version="1.2.69" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,9 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF\Meteion.Toolkit.WPF.csproj" />
-    <ProjectReference Include="..\..\src\Meteion.Toolkit.MVVM\Meteion.Toolkit.WPF.MVVM.csproj" />
-    <ProjectReference Include="..\Meteion.Toolkit.WPF.MVVM.Tests.Fixtures.NamingConvention\Meteion.Toolkit.WPF.MVVM.Tests.Fixtures.NamingConvention.csproj" />
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.Localization.Abstractions\Meteion.Toolkit.Localization.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Localization\Meteion.Toolkit.WPF.Localization.csproj" />
+    <ProjectReference Include="..\Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx\Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx.csproj" />
+    <ProjectReference Include="..\Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx\Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx.csproj" />
   </ItemGroup>
 
 </Project>
