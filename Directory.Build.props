@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>  
+  <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)\artifacts</ArtifactsPath>
+    <!-- new in .NET 8: https://learn.microsoft.com/en-us/dotnet/core/sdk/artifacts-output -->
+    <!-- <UseCommonOutputDirectory>true</UseCommonOutputDirectory>
+    <IntermediateOutputPath>$(MSBuildThisFileDirectory)/obj/$(MSBuildProjectName)</IntermediateOutputPath> -->
+  </PropertyGroup>
+    
+  <PropertyGroup>
+    <Language>C#</Language>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>1591;CS8618</NoWarn>
+
+    <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmm"))</BuildTimestamp>    
+    <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
+
+    <Authors>frogcrush</Authors>
+    <Company>Meteion Software Corporation</Company>
+  </PropertyGroup>
+
+  <!--
+    Version is derived from git tags via MinVer — no version numbers live in any
+    .csproj. Tag a release as `vX.Y.Z` (e.g. `git tag v1.2.3 && git push origin v1.2.3`)
+    and every project in the solution picks up that version on the next build/pack.
+
+    Commits that aren't exactly on a tag get a computed prerelease version instead
+    (e.g. `1.2.4-alpha.0.5` for the 5th commit after v1.2.3) — packing still works for
+    those, they just won't match the `refs/tags/` check the publish workflow uses to
+    gate the actual `dotnet nuget push`, so only tagged commits ever get published.
+  -->
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+  </PropertyGroup>
+
+  <!--
+    One shared README for every package, rather than per-project files, for now.
+    $(MSBuildThisFileDirectory) is the repo root (where this file lives), so this
+    resolves correctly regardless of which project is being packed.
+  -->
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)README.md')">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>

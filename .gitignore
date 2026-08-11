@@ -361,3 +361,21 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/NuGet.config
+NuGet.config
+
+# .NET 8 Artifacts folder
+[Aa]rtifacts/
+
+# Generated Code folder
+**/Generated\ Code/
+**/GeneratedCode/
+
+secrets.json
+lib/local-packages/
+.idea/
+.vscode/
+.DS_Store
+
+**/aspire-output/
+/sentry-cli-Windows-x86_64.exe
