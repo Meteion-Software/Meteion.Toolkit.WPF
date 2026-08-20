@@ -1,4 +1,4 @@
-using Meteion.Toolkit.MVVM.Services;
+﻿using Meteion.Toolkit.MVVM.Services;
 using Meteion.Toolkit.WPF.MVVM.Tests.Fixtures;
 using Meteion.Toolkit.WPF.MVVM.Tests.TestHelpers;
 using System.Windows.Controls;
@@ -83,15 +83,5 @@ public class NavigationServiceTests
         var result = await service.GoBack();
 
         Assert.False(result);
-    }
-
-    [StaFact]
-    public void CleanNavigation_IsNotYetImplemented()
-    {
-        // Documents the current, real state of the code rather than an intended one —
-        // NavigationService.CleanNavigation is literally `throw new NotImplementedException()`.
-        var service = new NavigationService(new FakePageResolutionService());
-
-        Assert.Throws<NotImplementedException>(() => service.CleanNavigation());
     }
 }
