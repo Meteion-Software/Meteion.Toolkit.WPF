@@ -23,7 +23,7 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
 
     public void CleanNavigation()
     {
-        throw new NotImplementedException();
+        _frame?.CleanNavigation();
     }
 
     public async Task<bool> GoBack()
