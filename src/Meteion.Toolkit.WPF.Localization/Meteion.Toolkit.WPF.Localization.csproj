@@ -17,8 +17,4 @@
     <ProjectReference Include="..\Meteion.Toolkit.WPF.Hosting\Meteion.Toolkit.WPF.Hosting.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Converters\" />
-  </ItemGroup>
-
 </Project>

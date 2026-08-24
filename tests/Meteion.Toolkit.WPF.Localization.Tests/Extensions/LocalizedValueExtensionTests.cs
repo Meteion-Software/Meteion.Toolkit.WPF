@@ -1,9 +1,11 @@
 using Meteion.Toolkit.Localization.Abstractions;
 using Meteion.Toolkit.WPF.Localization.Extensions;
 using Meteion.Toolkit.WPF.Localization.Tests.Fakes;
+using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Documents;
 
 namespace Meteion.Toolkit.WPF.Localization.Tests.Extensions;
@@ -116,6 +118,78 @@ public class LocalizedValueExtensionTests
 
             Assert.Same(explicitAssembly, resolver.LastExplicitAssembly);
         }
+    }
+
+    // Constructing a real FrameworkElement (TextBlock) requires an STA thread.
+    [StaFact]
+    public void ProvideValue_KeyBindingDependencyPropertyTarget_BindsLiveToSourcePropertyAndCulture()
+    {
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
+        using (UseFakeLocator(service, resolver))
+        {
+            var source = new KeySource { TitleKey = "Greeting" };
+            var textBlock = new TextBlock { DataContext = source };
+            var provider = new FakeProvideValueServiceProvider()
+                .WithProvideValueTarget(textBlock, TextBlock.TextProperty);
+            var extension = new LocalizedValueExtension { KeyBinding = new Binding(nameof(KeySource.TitleKey)) };
+
+            var result = extension.ProvideValue(provider);
+
+            Assert.Equal("Hello", result);
+            Assert.Equal("Hello", textBlock.Text);
+
+            // Source property changes...
+            service.ValueToReturn = "Goodbye";
+            source.TitleKey = "Farewell";
+            Assert.Equal("Goodbye", textBlock.Text);
+
+            // ...and culture changes, both re-resolve using the current bound key.
+            service.ValueToReturn = "Au revoir";
+            service.RaiseCultureChanged(new CultureInfo("fr-CA"));
+            Assert.Equal("Au revoir", textBlock.Text);
+            Assert.Equal("Farewell", service.LastRequestedKey);
+        }
+    }
+
+    [StaFact]
+    public void ProvideValue_KeyBindingAndLiteralKeyBothSet_KeyBindingTakesPrecedence()
+    {
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
+        using (UseFakeLocator(service, resolver))
+        {
+            var source = new KeySource { TitleKey = "FromBinding" };
+            var textBlock = new TextBlock { DataContext = source };
+            var provider = new FakeProvideValueServiceProvider()
+                .WithProvideValueTarget(textBlock, TextBlock.TextProperty);
+            var extension = new LocalizedValueExtension
+            {
+                Key = "FromLiteral",
+                KeyBinding = new Binding(nameof(KeySource.TitleKey)),
+            };
+
+            extension.ProvideValue(provider);
+
+            Assert.Equal("FromBinding", service.LastRequestedKey);
+        }
+    }
+
+    private sealed class KeySource : INotifyPropertyChanged
+    {
+        private string? _titleKey;
+
+        public string? TitleKey
+        {
+            get => _titleKey;
+            set
+            {
+                _titleKey = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TitleKey)));
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 
     private sealed class RestoreAccessor(Func<IServiceProvider> original) : IDisposable

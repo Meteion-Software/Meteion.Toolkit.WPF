@@ -11,6 +11,25 @@ It stores localization resources in RESX files in your assembly by default.
 - Can be easily displayed in the Designer
 - Can handle non-dependency properties
 
+## Usage
+
+Bind a fixed, XAML-known resource key:
+
+```xml
+<TextBlock Text="{lx:LocalizedValue Key=Greeting}" />
+```
+
+Bind a *dynamic* per-item key instead — e.g. a key coming from a bound view-model/model
+property, such as an item in an `ItemsControl`'s `DataTemplate` — with `KeyBinding`. The
+displayed text updates live both when the bound key changes and whenever the display
+culture changes:
+
+```xml
+<TextBlock Text="{lx:LocalizedValue KeyBinding={Binding TitleKey}}" />
+```
+
+If both `Key` and `KeyBinding` are set, `KeyBinding` takes precedence.
+
 ## Naming Conventions
 This library expects **one resx "family" per assembly** — `ILocalizationProvider` only receives an `Assembly`, not a file/dictionary name, so all your localized strings for a given assembly need to live under a single shared base name.
 

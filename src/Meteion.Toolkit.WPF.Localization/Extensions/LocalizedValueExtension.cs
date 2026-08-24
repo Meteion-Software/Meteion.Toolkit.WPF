@@ -16,6 +16,14 @@ public class LocalizedValueExtension : MarkupExtension
     public string? Key { get; set; }
     public Assembly? Assembly { get; set; }
 
+    /// <summary>
+    /// Optional binding that supplies the resource key dynamically (e.g. a per-item
+    /// key from a bound view-model/model property), instead of the fixed <see cref="Key"/>
+    /// literal. When set, the resolved text tracks both the bound key changing and
+    /// culture changes. Takes precedence over <see cref="Key"/> when both are set.
+    /// </summary>
+    public BindingBase? KeyBinding { get; set; }
+
     public LocalizedValueExtension(string key) : this(key, null) { }
 
     public LocalizedValueExtension() { }
@@ -31,10 +39,10 @@ public class LocalizedValueExtension : MarkupExtension
         // TODO: make it so we can toggle functionality
         if (DesignerProperties.GetIsInDesignMode(new DependencyObject()))
         {
-            return $"[{Key}]";
+            return KeyBinding != null ? "[…]" : $"[{Key}]";
         }
 
-        if (Key == null)
+        if (Key == null && KeyBinding == null)
         {
             return "NOKEY";
         }
@@ -48,13 +56,22 @@ public class LocalizedValueExtension : MarkupExtension
         if (target?.TargetObject is DependencyObject depObj &&
             target.TargetProperty is DependencyProperty or PropertyInfo)
         {
-            var proxy = new ToolkitLocalizationProxy(loc, Key, resolvedAssembly);
+            if (KeyBinding != null)
+            {
+                var dynamicProxy = new DynamicToolkitLocalizationProxy(loc, resolvedAssembly);
+                DynamicKeyBinder.Bind(depObj, dynamicProxy, KeyBinding);
+                var dynamicBinding = new Binding(nameof(DynamicToolkitLocalizationProxy.Value)) { Source = dynamicProxy };
+                return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, dynamicBinding);
+            }
+
+            var proxy = new ToolkitLocalizationProxy(loc, Key!, resolvedAssembly);
             var binding = new Binding(nameof(ToolkitLocalizationProxy.Value)) { Source = proxy };
             return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, binding);
         }
 
-        // Target isn't a DependencyObject at all (rare) — no live update possible.
-        return loc.GetString(Key, resolvedAssembly);
+        // Target isn't a DependencyObject at all (rare) — no live update possible, and a
+        // KeyBinding has no source to resolve against without one.
+        return Key != null ? loc.GetString(Key, resolvedAssembly) : string.Empty;
     }
 }
 
