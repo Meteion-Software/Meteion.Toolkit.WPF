@@ -16,6 +16,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>1591;CS8618</NoWarn>
 
+    <Platforms>x64;x86;AnyCPU</Platforms>
+
     <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmm"))</BuildTimestamp>    
     <IncludeSourceRevisionInInformationalVersion>true</IncludeSourceRevisionInInformationalVersion>
 
