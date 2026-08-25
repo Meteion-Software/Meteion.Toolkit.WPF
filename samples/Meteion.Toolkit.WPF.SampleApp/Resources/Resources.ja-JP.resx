@@ -126,4 +126,13 @@
   <data name="ScopeID" xml:space="preserve">
     <value>スコープID</value>
   </data>
+  <data name="Feature_Alpha" xml:space="preserve">
+    <value>アルファ機能</value>
+  </data>
+  <data name="Feature_Beta" xml:space="preserve">
+    <value>ベータ機能</value>
+  </data>
+  <data name="Feature_Gamma" xml:space="preserve">
+    <value>ガンマ機能</value>
+  </data>
 </root>

@@ -19,6 +19,32 @@
             </TextBlock>
 
             <Button Content="{lx:LocalizedValue ChangeLanguage}" Margin="5" Command="{Binding SwitchLanguageCommand}" />
+
+            <Separator Margin="0,15,0,10" />
+            <TextBlock Text="LocalizedValue usage examples" FontWeight="Bold" Margin="0,0,0,10" />
+
+            <!-- 1. Literal Key, targeting a DependencyProperty (TextBlock.Text). -->
+            <TextBlock Text="1. Literal Key -&gt; DependencyProperty target:" FontStyle="Italic" />
+            <TextBlock Text="{lx:LocalizedValue HomePage_WelcomeMessage}" Margin="0,0,0,10" />
+
+            <!-- 2. Literal Key, targeting a plain CLR property (Run.Text has no DependencyProperty). -->
+            <TextBlock Text="2. Literal Key -&gt; plain CLR property target (Run.Text):" FontStyle="Italic" />
+            <TextBlock Margin="0,0,0,10">
+                <Run Text="{lx:LocalizedValue ScopeID}" />
+            </TextBlock>
+
+            <!--
+                3. KeyBinding, sourcing the key dynamically from a bound view-model property
+                (instead of a fixed literal Key), so both the source key and culture changes
+                are reflected live. Note: this only works when the extension targets a real,
+                directly-owned DependencyProperty; it cannot be used inside a DataTemplate,
+                since WPF supplies a shared placeholder (not the real element) as the binding
+                target there, which the extension can't attach a live rebind to.
+            -->
+            <TextBlock Text="3. KeyBinding -&gt; key chosen from a ComboBox:" FontStyle="Italic" />
+            <ComboBox ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedKey}"
+                      Width="220" HorizontalAlignment="Left" Margin="0,0,0,5" />
+            <TextBlock Text="{lx:LocalizedValue KeyBinding={Binding SelectedKey}}" Margin="0,0,0,10" />
         </StackPanel>
     </Grid>
 </Page>

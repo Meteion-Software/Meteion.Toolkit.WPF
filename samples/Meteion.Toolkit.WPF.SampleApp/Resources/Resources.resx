@@ -126,4 +126,13 @@
   <data name="ScopeID" xml:space="preserve">
     <value>Scope ID</value>
   </data>
+  <data name="Feature_Alpha" xml:space="preserve">
+    <value>Alpha Feature</value>
+  </data>
+  <data name="Feature_Beta" xml:space="preserve">
+    <value>Beta Feature</value>
+  </data>
+  <data name="Feature_Gamma" xml:space="preserve">
+    <value>Gamma Feature</value>
+  </data>
 </root>
