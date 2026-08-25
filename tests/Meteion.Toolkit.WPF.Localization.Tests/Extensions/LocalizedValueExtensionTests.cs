@@ -3,10 +3,14 @@ using Meteion.Toolkit.WPF.Localization.Extensions;
 using Meteion.Toolkit.WPF.Localization.Tests.Fakes;
 using System.ComponentModel;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using System.Windows.Markup;
+using System.Windows.Media;
 
 namespace Meteion.Toolkit.WPF.Localization.Tests.Extensions;
 
@@ -174,6 +178,127 @@ public class LocalizedValueExtensionTests
             Assert.Equal("FromBinding", service.LastRequestedKey);
         }
     }
+
+    [Fact]
+    public void ProvideValue_KeyBindingWithNoProvideValueTarget_ThrowsConfigurationException()
+    {
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
+        using (UseFakeLocator(service, resolver))
+        {
+            var extension = new LocalizedValueExtension { KeyBinding = new Binding(nameof(KeySource.TitleKey)) };
+
+            // No target info at all to resolve the key source against — must throw rather than
+            // silently return an empty string, which would look like a bug in the consuming app.
+            Assert.Throws<LocalizationConfigurationException>(
+                () => extension.ProvideValue(new FakeProvideValueServiceProvider()));
+        }
+    }
+
+    [Fact]
+    public void ProvideValue_KeyBindingWithPlainClrPropertyTargetAndNoLiveElement_ThrowsConfigurationException()
+    {
+        // Simulates what WPF hands the extension for a plain CLR property (e.g. Run.Text)
+        // inside a DataTemplate/ControlTemplate: TargetObject is not a real, connected
+        // DependencyObject (WPF's shared template placeholder in the real scenario), so there's
+        // nothing to bind the key source against.
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
+        using (UseFakeLocator(service, resolver))
+        {
+            var textProperty = typeof(Run).GetProperty(nameof(Run.Text))!;
+            var provider = new FakeProvideValueServiceProvider()
+                .WithProvideValueTarget(new object(), textProperty);
+            var extension = new LocalizedValueExtension { KeyBinding = new Binding(nameof(KeySource.TitleKey)) };
+
+            Assert.Throws<LocalizationConfigurationException>(() => extension.ProvideValue(provider));
+        }
+    }
+
+    // Faithful regression test for the real-world bug report: {lx:LocalizedValue
+    // KeyBinding=...} used inside an ItemsControl.ItemTemplate rendered blank for every row.
+    // This has to go through WPF's real XAML parser and template machinery (not
+    // FakeProvideValueServiceProvider) because the bug was specific to
+    // IProvideValueTarget.TargetObject being WPF's shared template placeholder
+    // (System.Windows.SharedDp) rather than the real per-row element.
+    [StaFact]
+    public void ProvideValue_KeyBindingInsideDataTemplate_ResolvesEachRowIndependently()
+    {
+        var service = new FakeLocalizationService();
+        var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
+        using (UseFakeLocator(service, resolver))
+        {
+            const string templateXaml = """
+                <DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                              xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization">
+                    <TextBlock Text="{lx:LocalizedValue KeyBinding={Binding Key}}" />
+                </DataTemplate>
+                """;
+            var itemTemplate = (DataTemplate)XamlReader.Parse(templateXaml);
+
+            var itemsControl = new ItemsControl
+            {
+                ItemTemplate = itemTemplate,
+                ItemsSource = new[] { new KeyedRow("RowA"), new KeyedRow("RowB"), new KeyedRow("RowC") },
+            };
+
+            // FakeLocalizationService.GetString echoes the key back when ValueToReturn is
+            // unset, so each row's resolved text should equal that row's own key — proving
+            // KeyBinding resolved per-row rather than being blank (the bug) or shared/identical
+            // across every row.
+            var window = new Window
+            {
+                Content = itemsControl,
+                Width = 200,
+                Height = 200,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                Left = -3000,
+                Top = -3000,
+                ShowActivated = false,
+            };
+            try
+            {
+                window.Show();
+                window.UpdateLayout();
+
+                var rowTexts = Enumerable.Range(0, 3)
+                    .Select(i => itemsControl.ItemContainerGenerator.ContainerFromIndex(i) as DependencyObject)
+                    .Select(container => container == null ? null : FindVisualChild<TextBlock>(container))
+                    .Select(textBlock => textBlock?.Text)
+                    .ToArray();
+
+                Assert.Equal(new[] { "RowA", "RowB", "RowC" }, rowTexts);
+            }
+            finally
+            {
+                window.Close();
+            }
+        }
+    }
+
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        var childCount = VisualTreeHelper.GetChildrenCount(parent);
+        for (var i = 0; i < childCount; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T typed)
+            {
+                return typed;
+            }
+
+            var descendant = FindVisualChild<T>(child);
+            if (descendant != null)
+            {
+                return descendant;
+            }
+        }
+
+        return null;
+    }
+
+    private sealed record KeyedRow(string Key);
 
     private sealed class KeySource : INotifyPropertyChanged
     {

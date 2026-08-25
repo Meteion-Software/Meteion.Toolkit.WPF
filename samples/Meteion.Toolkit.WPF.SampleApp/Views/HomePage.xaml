@@ -19,6 +19,43 @@
             </TextBlock>
 
             <Button Content="{lx:LocalizedValue ChangeLanguage}" Margin="5" Command="{Binding SwitchLanguageCommand}" />
+
+            <Separator Margin="0,15,0,10" />
+            <TextBlock Text="LocalizedValue usage examples" FontWeight="Bold" Margin="0,0,0,10" />
+
+            <!-- 1. Literal Key, targeting a DependencyProperty (TextBlock.Text). -->
+            <TextBlock Text="1. Literal Key -&gt; DependencyProperty target:" FontStyle="Italic" />
+            <TextBlock Text="{lx:LocalizedValue HomePage_WelcomeMessage}" Margin="0,0,0,10" />
+
+            <!-- 2. Literal Key, targeting a plain CLR property (Run.Text has no DependencyProperty). -->
+            <TextBlock Text="2. Literal Key -&gt; plain CLR property target (Run.Text):" FontStyle="Italic" />
+            <TextBlock Margin="0,0,0,10">
+                <Run Text="{lx:LocalizedValue ScopeID}" />
+            </TextBlock>
+
+            <!--
+                3. KeyBinding, sourcing the key dynamically from a bound view-model property
+                (instead of a fixed literal Key), so both the source key and culture changes
+                are reflected live.
+            -->
+            <TextBlock Text="3. KeyBinding -&gt; key chosen from a ComboBox:" FontStyle="Italic" />
+            <ComboBox ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedKey}"
+                      Width="220" HorizontalAlignment="Left" Margin="0,0,0,5" />
+            <TextBlock Text="{lx:LocalizedValue KeyBinding={Binding SelectedKey}}" Margin="0,0,0,10" />
+
+            <!--
+                4. KeyBinding inside a DataTemplate: each row resolves its own key from its own
+                FeatureItem, demonstrating per-item dynamic keys resolved inside an
+                ItemsControl.ItemTemplate (rather than a single, directly-owned DependencyProperty).
+            -->
+            <TextBlock Text="4. KeyBinding -&gt; per-item key inside a DataTemplate:" FontStyle="Italic" />
+            <ItemsControl ItemsSource="{Binding Features}" Margin="0,0,0,10">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{lx:LocalizedValue KeyBinding={Binding Key}}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </StackPanel>
     </Grid>
 </Page>
