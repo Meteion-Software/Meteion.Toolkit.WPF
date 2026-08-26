@@ -18,7 +18,17 @@
     <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Hosting\Meteion.Toolkit.WPF.Hosting.csproj" />
     <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Localization\Meteion.Toolkit.WPF.Localization.csproj" />
     <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF\Meteion.Toolkit.WPF.csproj" />
+    <!-- Build-order only (not a binary dependency) - ensures the checker tool is built
+         before the .targets Import below tries to run it. -->
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.Localization.Check\Meteion.Toolkit.Localization.Check.csproj" ReferenceOutputAssembly="false" Private="false" />
   </ItemGroup>
+
+  <!--
+    Dogfoods the same pre-build localization check that ships to consumers via the
+    Meteion.Toolkit.Localization.Check NuGet package - see that project's build\*.targets
+    file for how a real package consumer gets this automatically.
+  -->
+  <Import Project="..\..\src\Meteion.Toolkit.Localization.Check\build\Meteion.Toolkit.Localization.Check.targets" />
 
   <ItemGroup>
     <Compile Update="Resources\Resources.Designer.cs">

@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Meteion.Toolkit.Localization.Check</RootNamespace>
+    <Description>Scans .resx localization resources and XAML usages and reports keys that are missing, orphaned, or undefined, so gaps are caught before running the app. Add a PackageReference and it wires itself into your build automatically - no other setup required.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- No PrivateAssets - a consumer's PackageReference to this project flows the
+         Check.Core API through transitively as well. -->
+    <ProjectReference Include="..\Meteion.Toolkit.Localization.Check.Core\Meteion.Toolkit.Localization.Check.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Shipping the same .targets file under both build\ and buildTransitive\ means the
+      pre-build check runs for any project that references this package directly, and
+      for projects that pull it in transitively via another Meteion.Toolkit package.
+    -->
+    <None Include="build\Meteion.Toolkit.Localization.Check.targets" Pack="true" PackagePath="build\Meteion.Toolkit.Localization.Check.targets" />
+    <None Include="build\Meteion.Toolkit.Localization.Check.targets" Pack="true" PackagePath="buildTransitive\Meteion.Toolkit.Localization.Check.targets" />
+
+    <!--
+      A plain "reference assembly" pack of an Exe-output project normally omits the
+      runtimeconfig/deps files needed to `dotnet exec` it directly, and never includes a
+      ProjectReference's output at all - stage them into this package's own lib\ folder
+      explicitly, so wherever NuGet extracts this package to is fully self-sufficient to
+      run standalone. This deliberately duplicates Check.Core's assembly into this package
+      too (it's also its own separate package, for API-only consumers) rather than relying
+      on `dotnet exec` to probe into a *different* restored package for it at run time -
+      that cross-package probing depends on the exact package version recorded in this
+      project's own build-time deps.json, which won't match a differently-versioned Check.Core
+      restored for the consumer, and fails at run time.
+    -->
+    <None Include="$(OutputPath)$(AssemblyName).runtimeconfig.json" Pack="true" PackagePath="lib\$(TargetFramework)\" />
+    <None Include="$(OutputPath)$(AssemblyName).deps.json" Pack="true" PackagePath="lib\$(TargetFramework)\" />
+    <None Include="$(OutputPath)Meteion.Toolkit.Localization.Check.Core.dll" Pack="true" PackagePath="lib\$(TargetFramework)\" />
+  </ItemGroup>
+
+</Project>

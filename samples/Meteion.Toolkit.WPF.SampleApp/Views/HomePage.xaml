@@ -1,34 +1,43 @@
-﻿<Page x:Class="Meteion.Toolkit.WPF.SampleApp.Views.HomePage"
-      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:Meteion.Toolkit.WPF.SampleApp.Views"
-      xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization" xmlns:viewmodels="clr-namespace:Meteion.Toolkit.WPF.SampleApp.ViewModels" 
-      d:DataContext="{d:DesignInstance Type=viewmodels:HomePageViewModel}"
-      mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Title="{lx:LocalizedValue HomePage_WelcomeMessage}">
+﻿<Page
+    x:Class="Meteion.Toolkit.WPF.SampleApp.Views.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:Meteion.Toolkit.WPF.SampleApp.Views"
+    xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewmodels="clr-namespace:Meteion.Toolkit.WPF.SampleApp.ViewModels"
+    Title="{lx:LocalizedValue HomePage_WelcomeMessage}"
+    d:DataContext="{d:DesignInstance Type=viewmodels:HomePageViewModel}"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
 
     <Grid>
         <StackPanel Margin="10">
             <TextBlock Text="{lx:LocalizedValue HomePage_WelcomeMessage}" />
             <TextBlock>
-                <Run Text="{lx:LocalizedValue ScopeID}"/><Run Text=":" />
+                <Run Text="{lx:LocalizedValue ScopeID}" /><Run Text=":" />
                 <Run Text="{Binding ScopeId, Mode=OneWay}" />
             </TextBlock>
 
-            <Button Content="{lx:LocalizedValue ChangeLanguage}" Margin="5" Command="{Binding SwitchLanguageCommand}" />
+            <Button
+                Margin="5"
+                Command="{Binding SwitchLanguageCommand}"
+                Content="{lx:LocalizedValue ChangeLanguage}" />
 
             <Separator Margin="0,15,0,10" />
-            <TextBlock Text="LocalizedValue usage examples" FontWeight="Bold" Margin="0,0,0,10" />
+            <TextBlock
+                Margin="0,0,0,10"
+                FontWeight="Bold"
+                Text="LocalizedValue usage examples" />
 
-            <!-- 1. Literal Key, targeting a DependencyProperty (TextBlock.Text). -->
-            <TextBlock Text="1. Literal Key -&gt; DependencyProperty target:" FontStyle="Italic" />
-            <TextBlock Text="{lx:LocalizedValue HomePage_WelcomeMessage}" Margin="0,0,0,10" />
+            <!--  1. Literal Key, targeting a DependencyProperty (TextBlock.Text).  -->
+            <TextBlock FontStyle="Italic" Text="1. Literal Key -&gt; DependencyProperty target:" />
+            <TextBlock Margin="0,0,0,10" Text="{lx:LocalizedValue HomePage_WelcomeMessage}" />
 
-            <!-- 2. Literal Key, targeting a plain CLR property (Run.Text has no DependencyProperty). -->
-            <TextBlock Text="2. Literal Key -&gt; plain CLR property target (Run.Text):" FontStyle="Italic" />
+            <!--  2. Literal Key, targeting a plain CLR property (Run.Text has no DependencyProperty).  -->
+            <TextBlock FontStyle="Italic" Text="2. Literal Key -&gt; plain CLR property target (Run.Text):" />
             <TextBlock Margin="0,0,0,10">
                 <Run Text="{lx:LocalizedValue ScopeID}" />
             </TextBlock>
@@ -41,10 +50,14 @@
                 since WPF supplies a shared placeholder (not the real element) as the binding
                 target there, which the extension can't attach a live rebind to.
             -->
-            <TextBlock Text="3. KeyBinding -&gt; key chosen from a ComboBox:" FontStyle="Italic" />
-            <ComboBox ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedKey}"
-                      Width="220" HorizontalAlignment="Left" Margin="0,0,0,5" />
-            <TextBlock Text="{lx:LocalizedValue KeyBinding={Binding SelectedKey}}" Margin="0,0,0,10" />
+            <TextBlock FontStyle="Italic" Text="3. KeyBinding -&gt; key chosen from a ComboBox:" />
+            <ComboBox
+                Width="220"
+                Margin="0,0,0,5"
+                HorizontalAlignment="Left"
+                ItemsSource="{Binding AvailableKeys}"
+                SelectedItem="{Binding SelectedKey}" />
+            <TextBlock Margin="0,0,0,10" Text="{lx:LocalizedValue KeyBinding={Binding SelectedKey}}" />
         </StackPanel>
     </Grid>
 </Page>

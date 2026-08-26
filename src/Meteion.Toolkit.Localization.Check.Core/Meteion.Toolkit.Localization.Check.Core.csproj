@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Description>Scans .resx localization resources and XAML usages for missing or undefined localization keys. The reusable engine behind the `meteion-loc-check` tool.</Description>
+  </PropertyGroup>
+
+</Project>

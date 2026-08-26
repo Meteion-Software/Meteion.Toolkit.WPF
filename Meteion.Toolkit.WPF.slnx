@@ -1,19 +1,28 @@
 <Solution>
+  <Folder Name="/Hosting/">
+    <Project Path="src/Meteion.Toolkit.WPF.Hosting/Meteion.Toolkit.WPF.Hosting.csproj" />
+    <Project Path="tests/Meteion.Toolkit.WPF.Hosting.Tests/Meteion.Toolkit.WPF.Hosting.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Localization/">
+    <Project Path="src/Meteion.Toolkit.Localization.Abstractions/Meteion.Toolkit.Localization.Abstractions.csproj" Id="be403e23-6f74-4181-9203-2e2921afbf70" />
+    <Project Path="src/Meteion.Toolkit.Localization.Check.Core/Meteion.Toolkit.Localization.Check.Core.csproj" />
+    <Project Path="src/Meteion.Toolkit.Localization.Check/Meteion.Toolkit.Localization.Check.csproj" />
+    <Project Path="src/Meteion.Toolkit.WPF.Localization/Meteion.Toolkit.WPF.Localization.csproj" Id="4a4e4822-ac0f-4c58-b076-cdb0c593d1ce" />
+    <Project Path="tests/Meteion.Toolkit.Localization.Check.Tests/Meteion.Toolkit.Localization.Check.Tests.csproj" />
+    <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx.csproj" />
+    <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx.csproj" />
+    <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests/Meteion.Toolkit.WPF.Localization.Tests.csproj" />
+  </Folder>
+  <Folder Name="/MVVM/">
+    <Project Path="src/Meteion.Toolkit.MVVM/Meteion.Toolkit.WPF.MVVM.csproj" />
+    <Project Path="tests/Meteion.Toolkit.WPF.MVVM.Tests.Fixtures.NamingConvention/Meteion.Toolkit.WPF.MVVM.Tests.Fixtures.NamingConvention.csproj" />
+    <Project Path="tests/Meteion.Toolkit.WPF.MVVM.Tests/Meteion.Toolkit.WPF.MVVM.Tests.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="README.md" />
   </Folder>
   <Project Path="samples/Meteion.Toolkit.WPF.SampleApp/Meteion.Toolkit.WPF.SampleApp.csproj" />
-  <Project Path="src/Meteion.Toolkit.Localization.Abstractions/Meteion.Toolkit.Localization.Abstractions.csproj" Id="be403e23-6f74-4181-9203-2e2921afbf70" />
-  <Project Path="src/Meteion.Toolkit.MVVM/Meteion.Toolkit.WPF.MVVM.csproj" />
-  <Project Path="src/Meteion.Toolkit.WPF.Hosting/Meteion.Toolkit.WPF.Hosting.csproj" />
-  <Project Path="src/Meteion.Toolkit.WPF.Localization/Meteion.Toolkit.WPF.Localization.csproj" Id="4a4e4822-ac0f-4c58-b076-cdb0c593d1ce" />
   <Project Path="src/Meteion.Toolkit.WPF/Meteion.Toolkit.WPF.csproj" />
-  <Project Path="tests/Meteion.Toolkit.WPF.MVVM.Tests/Meteion.Toolkit.WPF.MVVM.Tests.csproj" />
-  <Project Path="tests/Meteion.Toolkit.WPF.MVVM.Tests.Fixtures.NamingConvention/Meteion.Toolkit.WPF.MVVM.Tests.Fixtures.NamingConvention.csproj" />
   <Project Path="tests/Meteion.Toolkit.WPF.Tests/Meteion.Toolkit.WPF.Tests.csproj" />
-  <Project Path="tests/Meteion.Toolkit.WPF.Hosting.Tests/Meteion.Toolkit.WPF.Hosting.Tests.csproj" />
-  <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests/Meteion.Toolkit.WPF.Localization.Tests.csproj" />
-  <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx.csproj" />
-  <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx.csproj" />
 </Solution>

@@ -1,0 +1,35 @@
+<Project>
+
+  <PropertyGroup>
+    <RunLocalizationKeyCheck Condition="'$(RunLocalizationKeyCheck)' == ''">true</RunLocalizationKeyCheck>
+
+    <!--
+      NuGet always extracts a restored package's full contents (lib\, build\, etc.) to its
+      package-cache folder regardless of the consumer's IncludeAssets/PrivateAssets settings -
+      those only filter what gets projected into the consumer's own Reference/copy-local
+      items. So this relative lookup finds the assembly reliably even when a consumer (as
+      recommended) references this package with IncludeAssets="build;buildTransitive" to keep
+      it out of their own compiled/shipped output entirely.
+    -->
+    <_MeteionLocCheckToolPath Condition="'$(_MeteionLocCheckToolPath)' == ''">$(MSBuildThisFileDirectory)..\lib\net8.0\Meteion.Toolkit.Localization.Check.dll</_MeteionLocCheckToolPath>
+
+    <!--
+      Repo-local development fallback: when this file is Import'd directly from source (no
+      packed lib\ folder exists alongside it, e.g. this repo's own SampleApp dogfooding it),
+      fall back to this repo's own centralized artifacts output. Harmless no-op for real
+      package consumers, since that relative path never resolves to anything inside a
+      restored nupkg.
+    -->
+    <_MeteionLocCheckToolPath Condition="!Exists('$(_MeteionLocCheckToolPath)')">$(MSBuildThisFileDirectory)..\..\..\artifacts\bin\Meteion.Toolkit.Localization.Check\$(Configuration.ToLower())\Meteion.Toolkit.Localization.Check.dll</_MeteionLocCheckToolPath>
+  </PropertyGroup>
+
+  <Target Name="MeteionLocalizationKeyCheck"
+          BeforeTargets="Build"
+          Condition="'$(RunLocalizationKeyCheck)' == 'true' and '$(DesignTimeBuild)' != 'true' and '$(BuildingProject)' == 'true' and Exists('$(_MeteionLocCheckToolPath)')">
+    <Exec Command="dotnet exec &quot;$(_MeteionLocCheckToolPath)&quot; &quot;$(MSBuildProjectDirectory)&quot;"
+          ContinueOnError="WarnAndContinue"
+          StandardOutputImportance="high"
+          EchoOff="true" />
+  </Target>
+
+</Project>
