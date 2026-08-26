@@ -24,9 +24,7 @@ jobs:
         run: dotnet test --configuration Release
 
       - name: dotnet pack
-        run: |
-          dotnet pack
-          dotnet pack -r win-x64
+        run: dotnet pack
 
       # Use the ambient GitHub token to login to NuGet and retrieve an API key
       - name: NuGet login (OIDC → temp API key)
