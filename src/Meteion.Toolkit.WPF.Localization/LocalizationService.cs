@@ -43,6 +43,11 @@ internal sealed class LocalizationService : ILocalizationService
         var value = _provider.GetLocalizedString(key, assembly, CurrentCulture);
         if (value is not null) return value;
 
+        // Surface this the same way a genuinely failed {Binding} would, in Visual Studio's
+        // XAML Binding Failures window — regardless of MissingKeyBehavior, since ReturnKey/
+        // ReturnEmptyString would otherwise degrade with no signal that anything went wrong.
+        LocalizationTraceSource.TraceMissingKey(key, assembly, _options.MissingKeyBehavior);
+
         return _options.MissingKeyBehavior switch
         {
             MissingResourceBehavior.ReturnKey => key,
