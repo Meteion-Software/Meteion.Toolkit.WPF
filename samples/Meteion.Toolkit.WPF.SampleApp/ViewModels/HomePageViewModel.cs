@@ -8,6 +8,12 @@ using System.ComponentModel;
 
 namespace Meteion.Toolkit.WPF.SampleApp.ViewModels;
 
+/// <summary>
+/// A single row for the DataTemplate usage example — just enough to give each row its own
+/// resource key to resolve via {lx:LocalizedValue KeyBinding={Binding Key}}.
+/// </summary>
+public sealed record FeatureItem(string Key);
+
 public partial class HomePageViewModel : INotifyPropertyChanged
 {
     private readonly IScopeIdService _scopeIdProvider;
@@ -26,6 +32,14 @@ public partial class HomePageViewModel : INotifyPropertyChanged
     /// </summary>
     public ObservableCollection<string> AvailableKeys { get; } = new(
         ["HomePage_WelcomeMessage", "ChangeLanguage", "ScopeID", "Feature_Alpha", "Feature_Beta", "Feature_Gamma"]);
+
+    /// <summary>
+    /// Backs the DataTemplate example: each row resolves its own resource key via
+    /// {lx:LocalizedValue KeyBinding={Binding Key}}, demonstrating per-item dynamic keys
+    /// resolved inside an ItemsControl.ItemTemplate.
+    /// </summary>
+    public ObservableCollection<FeatureItem> Features { get; } = new(
+        [new FeatureItem("Feature_Alpha"), new FeatureItem("Feature_Beta"), new FeatureItem("Feature_Gamma")]);
 
     /// <summary>
     /// The currently selected key for the KeyBinding-via-ComboBox example. Bound
