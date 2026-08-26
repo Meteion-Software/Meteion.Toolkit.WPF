@@ -33,6 +33,14 @@ public class LocalizedValueExtension : MarkupExtension
     /// </summary>
     public BindingBase? KeyBinding { get; set; }
 
+    /// <summary>
+    /// Optional literal string prepended to the resolved key before lookup — for
+    /// <see cref="Key"/> as well as each value <see cref="KeyBinding"/> produces. Lets
+    /// a bound source supply just a short per-item suffix (e.g. "Info", "Warning")
+    /// while the shared resx key namespace (e.g. "Notification_") lives once in XAML.
+    /// </summary>
+    public string? KeyPrefix { get; set; }
+
     public LocalizedValueExtension(string key) : this(key, null) { }
 
     public LocalizedValueExtension() { }
@@ -48,7 +56,7 @@ public class LocalizedValueExtension : MarkupExtension
         // TODO: make it so we can toggle functionality
         if (DesignerProperties.GetIsInDesignMode(new DependencyObject()))
         {
-            return KeyBinding != null ? "[…]" : $"[{Key}]";
+            return KeyBinding != null ? $"[{KeyPrefix}…]" : $"[{CombineKey(Key)}]";
         }
 
         if (Key == null && KeyBinding == null)
@@ -71,13 +79,13 @@ public class LocalizedValueExtension : MarkupExtension
             // resolved value, exactly as this already worked outside templates before.
             if (KeyBinding != null)
             {
-                var dynamicProxy = new DynamicToolkitLocalizationProxy(loc, resolvedAssembly);
+                var dynamicProxy = new DynamicToolkitLocalizationProxy(loc, resolvedAssembly, KeyPrefix);
                 DynamicKeyBinder.Bind(depObj, dynamicProxy, KeyBinding);
                 var dynamicBinding = new Binding(nameof(DynamicToolkitLocalizationProxy.Value)) { Source = dynamicProxy };
                 return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, dynamicBinding);
             }
 
-            var proxy = new ToolkitLocalizationProxy(loc, Key!, resolvedAssembly);
+            var proxy = new ToolkitLocalizationProxy(loc, CombineKey(Key)!, resolvedAssembly);
             var binding = new Binding(nameof(ToolkitLocalizationProxy.Value)) { Source = proxy };
             return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, binding);
         }
@@ -95,7 +103,7 @@ public class LocalizedValueExtension : MarkupExtension
             {
                 var multiBinding = new MultiBinding
                 {
-                    Converter = new DynamicKeyLocalizationConverter(loc, resolvedAssembly),
+                    Converter = new DynamicKeyLocalizationConverter(loc, resolvedAssembly, KeyPrefix),
                     Mode = BindingMode.OneWay,
                 };
                 multiBinding.Bindings.Add(KeyBinding);
@@ -107,7 +115,7 @@ public class LocalizedValueExtension : MarkupExtension
                 return multiBinding;
             }
 
-            var templateProxy = new ToolkitLocalizationProxy(loc, Key!, resolvedAssembly);
+            var templateProxy = new ToolkitLocalizationProxy(loc, CombineKey(Key)!, resolvedAssembly);
             return new Binding(nameof(ToolkitLocalizationProxy.Value)) { Source = templateProxy, Mode = BindingMode.OneWay };
         }
 
@@ -132,8 +140,16 @@ public class LocalizedValueExtension : MarkupExtension
         // Literal Key with no live target: resolved once, non-live. Inside a template this
         // means the text won't update on a later culture change — a known limitation for this
         // specific combination (plain CLR property target + template).
-        return loc.GetString(Key!, resolvedAssembly);
+        return loc.GetString(CombineKey(Key)!, resolvedAssembly);
     }
+
+    /// <summary>
+    /// Prepends <see cref="KeyPrefix"/> (if set) to a resolved key. Used for the literal
+    /// <see cref="Key"/> path; the <see cref="KeyBinding"/> path applies the same prefix
+    /// per-value instead, via <see cref="DynamicToolkitLocalizationProxy"/> or
+    /// <see cref="DynamicKeyLocalizationConverter"/>, since the key isn't known until runtime.
+    /// </summary>
+    private string? CombineKey(string? key) => key == null ? null : KeyPrefix + key;
 }
 
 /// <summary>

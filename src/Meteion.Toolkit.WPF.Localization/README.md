@@ -17,6 +17,7 @@ Bind a fixed, XAML-known resource key:
 
 ```xml
 <TextBlock Text="{lx:LocalizedValue Key=Greeting}" />
+<TextBlock Text="{lx:LocalizedValue Greeting}" />
 ```
 
 Bind a *dynamic* per-item key instead — e.g. a key coming from a bound view-model/model
@@ -30,6 +31,14 @@ culture changes:
 
 If both `Key` and `KeyBinding` are set, `KeyBinding` takes precedence.
 
+You can also optionally prepend a fixed `KeyPrefix` so the bound (or literal) source only needs to supply a
+short per-item suffix, while the shared resx key namespace lives once in XAML:
+
+```xml
+<TextBlock Text="{lx:LocalizedValue KeyPrefix=Feature_, KeyBinding={Binding Key}}" />
+```
+
+
 ## Naming Conventions
 This library expects **one resx "family" per assembly** — `ILocalizationProvider` only receives an `Assembly`, not a file/dictionary name, so all your localized strings for a given assembly need to live under a single shared base name.
 
@@ -41,3 +50,35 @@ Follow the standard .NET convention:
 ## Recommendations
 
 The [ResxManager](https://marketplace.visualstudio.com/items?itemName=TomEnglert.ResXManager) is fantastic!
+
+
+## Localization key checking
+[Meteion.Toolkit.Localization.Check](https://www.nuget.org/packages/Meteion.Toolkit.Localization.Check) scans your `.resx` resources and XAML for two kinds of localization gaps that would otherwise only surface at runtime (or not at all):
+
+- A key exists in your neutral (default) resx but is missing from a satellite resx (e.g. `Resources.ja-JP.resx`) — silently falls back to the default culture today.
+- A key is used in XAML (`{lx:LocalizedValue SomeKey}`) that doesn't exist in *any* resx — this is the one that throws at runtime.
+
+Add it to your app project:
+```bash
+dotnet add package Meteion.Toolkit.Localization.Check
+```
+That's it - it wires itself into your build via an MSBuild target and prints a warning for every issue it finds, before you ever hit F5:
+```
+Resources.ja-JP.resx: warning LOC001: Key 'ScopeID' is defined in 'Resources.resx' but is missing from the 'ja-JP' locale.
+View.xaml(12): warning LOC003: Key 'SomeTypo' is used here but is not defined in any scanned .resx file and will throw or fail to resolve at runtime.
+```
+
+You are also able to use the checker's API directly via the `PackageReference`, enabling you to check resources on startup or in unit tests:
+```csharp
+var result = Meteion.Toolkit.Localization.Check.LocalizationKeyChecker.CheckDirectory("path/to/project");
+```
+
+**Known limitations**: the XAML check only understands literal `Key="..."` usages (a `KeyBinding`-sourced dynamic key can't be checked statically, by design) and assumes resources live in the same project being scanned — it doesn't resolve a `LocalizedValueExtension.Assembly` override that points at a different assembly.
+
+If you'd rather not ship the checker's own assemblies inside your app at all (they're a build-time tool, not a runtime dependency), reference it as:
+
+```
+<PackageReference Include="Meteion.Toolkit.Localization.Check" PrivateAssets="all" IncludeAssets="build;buildTransitive" />
+```
+
+Then the automatic pre-build check still runs, you just lose the ability to call the API directly from that project.

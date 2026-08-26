@@ -10,12 +10,12 @@ namespace Meteion.Toolkit.WPF.Localization.Extensions;
 /// value into localized text. Combined with a <see cref="CultureChangeTrigger"/> as the second
 /// input, so the result re-resolves whenever either the bound key or the active culture changes.
 /// </summary>
-internal sealed class DynamicKeyLocalizationConverter(ILocalizationService service, Assembly assembly) : IMultiValueConverter
+internal sealed class DynamicKeyLocalizationConverter(ILocalizationService service, Assembly assembly, string? keyPrefix = null) : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
     {
         var key = values.Length > 0 ? values[0] as string : null;
-        return key == null ? string.Empty : service.GetString(key, assembly);
+        return key == null ? string.Empty : service.GetString(keyPrefix + key, assembly);
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object? parameter, CultureInfo culture) =>

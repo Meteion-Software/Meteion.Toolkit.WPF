@@ -42,6 +42,15 @@ public partial class HomePageViewModel : INotifyPropertyChanged
         [new FeatureItem("Feature_Alpha"), new FeatureItem("Feature_Beta"), new FeatureItem("Feature_Gamma")]);
 
     /// <summary>
+    /// Backs the KeyPrefix example: each row supplies only the short suffix ("Alpha", "Beta",
+    /// "Gamma") via {lx:LocalizedValue KeyPrefix=Feature_, KeyBinding={Binding Key}}, which
+    /// combines with the shared "Feature_" prefix set once in XAML to resolve the same
+    /// Feature_Alpha/Beta/Gamma resx keys the DataTemplate example above uses directly.
+    /// </summary>
+    public ObservableCollection<FeatureItem> FeatureSuffixes { get; } = new(
+        [new FeatureItem("Alpha"), new FeatureItem("Beta"), new FeatureItem("Gamma")]);
+
+    /// <summary>
     /// The currently selected key for the KeyBinding-via-ComboBox example. Bound
     /// two-way to a ComboBox, and read by {lx:LocalizedValue KeyBinding={Binding SelectedKey}}.
     /// </summary>

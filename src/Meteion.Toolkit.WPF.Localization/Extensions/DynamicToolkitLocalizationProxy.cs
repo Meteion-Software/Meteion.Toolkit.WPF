@@ -20,12 +20,14 @@ internal sealed class DynamicToolkitLocalizationProxy : DependencyObject, INotif
 {
     private readonly ILocalizationService _service;
     private readonly Assembly _assembly;
+    private readonly string? _keyPrefix;
     private string? _key;
 
-    public DynamicToolkitLocalizationProxy(ILocalizationService service, Assembly assembly)
+    public DynamicToolkitLocalizationProxy(ILocalizationService service, Assembly assembly, string? keyPrefix = null)
     {
         _service = service;
         _assembly = assembly;
+        _keyPrefix = keyPrefix;
         Value = Resolve();
 
         WeakEventManager<ILocalizationService, CultureChangedEventArgs>.AddHandler(
@@ -63,5 +65,5 @@ internal sealed class DynamicToolkitLocalizationProxy : DependencyObject, INotif
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
     }
 
-    private string Resolve() => _key == null ? string.Empty : _service.GetString(_key, _assembly);
+    private string Resolve() => _key == null ? string.Empty : _service.GetString(_keyPrefix + _key, _assembly);
 }

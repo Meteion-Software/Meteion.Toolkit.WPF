@@ -47,21 +47,39 @@
                 (instead of a fixed literal Key), so both the source key and culture changes
                 are reflected live.
             -->
-            <TextBlock Text="3. KeyBinding -&gt; key chosen from a ComboBox:" FontStyle="Italic" />
-            <ComboBox ItemsSource="{Binding AvailableKeys}" SelectedItem="{Binding SelectedKey}"
-                      Width="220" HorizontalAlignment="Left" Margin="0,0,0,5" />
-            <TextBlock Text="{lx:LocalizedValue KeyBinding={Binding SelectedKey}}" Margin="0,0,0,10" />
+            <TextBlock FontStyle="Italic" Text="3. KeyBinding -&gt; key chosen from a ComboBox:" />
+            <ComboBox
+                Width="220"
+                Margin="0,0,0,5"
+                HorizontalAlignment="Left"
+                ItemsSource="{Binding AvailableKeys}"
+                SelectedItem="{Binding SelectedKey}" />
+            <TextBlock Margin="0,0,0,10" Text="{lx:LocalizedValue KeyBinding={Binding SelectedKey}}" />
 
             <!--
                 4. KeyBinding inside a DataTemplate: each row resolves its own key from its own
                 FeatureItem, demonstrating per-item dynamic keys resolved inside an
                 ItemsControl.ItemTemplate (rather than a single, directly-owned DependencyProperty).
             -->
-            <TextBlock Text="4. KeyBinding -&gt; per-item key inside a DataTemplate:" FontStyle="Italic" />
-            <ItemsControl ItemsSource="{Binding Features}" Margin="0,0,0,10">
+            <TextBlock FontStyle="Italic" Text="4. KeyBinding -&gt; per-item key inside a DataTemplate:" />
+            <ItemsControl Margin="0,0,0,10" ItemsSource="{Binding Features}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{lx:LocalizedValue KeyBinding={Binding Key}}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!--
+                5. KeyPrefix + KeyBinding: each row supplies only the short suffix ("Alpha",
+                "Beta", "Gamma"); KeyPrefix supplies the shared "Feature_" namespace once here
+                in XAML, so the resolved keys are the same Feature_Alpha/Beta/Gamma as above.
+            -->
+            <TextBlock FontStyle="Italic" Text="5. KeyPrefix + KeyBinding -&gt; shared prefix, per-item suffix:" />
+            <ItemsControl Margin="0,0,0,10" ItemsSource="{Binding FeatureSuffixes}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{lx:LocalizedValue KeyPrefix=Feature_, KeyBinding={Binding Key}}" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
