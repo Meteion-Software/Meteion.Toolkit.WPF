@@ -19,7 +19,9 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
     private Frame? _frame;
     private object? _lastParameterUsed;
 
-    public bool CanGoBack => _frame?.CanGoBack ?? false;
+    public bool CanGoBack => (_frame?.CanGoBack ?? false) && !IsNavigationLocked;
+
+    public bool IsNavigationLocked { get; set; }
 
     public void CleanNavigation()
     {
@@ -75,6 +77,12 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
         if (_frame == null)
         {
             throw new Exception("Navigation frame has not been set!");
+        }
+
+        if (IsNavigationLocked)
+        {
+            // Throw exception I guess? Implementor should be checking first
+            throw new Exception("NavigateTo was called but navigation is locked.");
         }
 
         // First resolve the page for the provided view model type so we can check if we are navigating to the same page with the same parameter.

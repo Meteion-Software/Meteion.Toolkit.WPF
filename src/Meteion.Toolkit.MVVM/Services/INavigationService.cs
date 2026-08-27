@@ -5,6 +5,7 @@ namespace Meteion.Toolkit.MVVM.Services;
 
 public interface INavigationService
 {
+    bool IsNavigationLocked { get; set; }
     bool CanGoBack { get; }
 
     void Initialize(Frame shellFrame);
