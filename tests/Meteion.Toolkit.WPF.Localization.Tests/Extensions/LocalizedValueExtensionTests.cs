@@ -277,6 +277,70 @@ public class LocalizedValueExtensionTests
         }
     }
 
+    // Regression test for the enum-flavored variant of the same bug: a KeyBinding source
+    // that isn't already a string (e.g. {Binding SomeEnumProperty}, as Outrun's
+    // UnitSettingTypeEnum-driven settings list does) resolved fine outside a DataTemplate
+    // (a real DependencyProperty binding gets WPF's implicit enum-to-string conversion) but
+    // rendered blank for every row inside one, because the MultiBinding converter's
+    // `values[0] as string` cast silently misses on a boxed enum with no error of any kind.
+    [StaFact]
+    public void ProvideValue_KeyBindingInsideDataTemplate_ResolvesEnumSourcePerRow()
+    {
+        var service = new FakeLocalizationService();
+        var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
+        using (UseFakeLocator(service, resolver))
+        {
+            const string templateXaml = """
+                <DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                              xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization">
+                    <TextBlock Text="{lx:LocalizedValue KeyBinding={Binding Key}}" />
+                </DataTemplate>
+                """;
+            var itemTemplate = (DataTemplate)XamlReader.Parse(templateXaml);
+
+            var itemsControl = new ItemsControl
+            {
+                ItemTemplate = itemTemplate,
+                ItemsSource = new[] { new EnumKeyedRow(SampleEnum.Alpha), new EnumKeyedRow(SampleEnum.Beta) },
+            };
+
+            var window = new Window
+            {
+                Content = itemsControl,
+                Width = 200,
+                Height = 200,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                Left = -3000,
+                Top = -3000,
+                ShowActivated = false,
+            };
+            try
+            {
+                window.Show();
+                window.UpdateLayout();
+
+                var rowTexts = Enumerable.Range(0, 2)
+                    .Select(i => itemsControl.ItemContainerGenerator.ContainerFromIndex(i) as DependencyObject)
+                    .Select(container => container == null ? null : FindVisualChild<TextBlock>(container))
+                    .Select(textBlock => textBlock?.Text)
+                    .ToArray();
+
+                // FakeLocalizationService.GetString echoes the key back, so each row's text
+                // should equal that row's own enum member name — not blank.
+                Assert.Equal(new[] { nameof(SampleEnum.Alpha), nameof(SampleEnum.Beta) }, rowTexts);
+            }
+            finally
+            {
+                window.Close();
+            }
+        }
+    }
+
+    private enum SampleEnum { Alpha, Beta }
+
+    private sealed record EnumKeyedRow(SampleEnum Key);
+
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
     {
         var childCount = VisualTreeHelper.GetChildrenCount(parent);

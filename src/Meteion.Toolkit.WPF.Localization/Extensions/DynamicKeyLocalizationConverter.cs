@@ -14,7 +14,14 @@ internal sealed class DynamicKeyLocalizationConverter(ILocalizationService servi
 {
     public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
     {
-        var key = values.Length > 0 ? values[0] as string : null;
+        // Unlike a real DependencyProperty binding (see DynamicKeyBinder), a MultiBinding's
+        // child bindings hand their raw source value straight to the converter with no
+        // implicit target-type conversion — so a non-string KeyBinding source (e.g. an enum,
+        // as from {Binding SomeEnumProperty}) arrives here as the boxed enum, not its name.
+        // A plain `as string` cast then silently misses on every row, producing an empty
+        // string with no binding error and no failed-lookup warning to explain it. ToString()
+        // matches what WPF's own implicit conversion would have produced for the DP case.
+        var key = values.Length > 0 ? values[0]?.ToString() : null;
         return key == null ? string.Empty : service.GetString(keyPrefix + key, assembly);
     }
 
