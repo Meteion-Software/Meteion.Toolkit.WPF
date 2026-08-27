@@ -1,0 +1,28 @@
+<Project>
+
+  <PropertyGroup>
+    <EnableMeteionLocalizationKeysGenerator Condition="'$(EnableMeteionLocalizationKeysGenerator)' == ''">true</EnableMeteionLocalizationKeysGenerator>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableMeteionLocalizationKeysGenerator)' == 'true'">
+    <!--
+      The generator reads .resx as AdditionalFiles, not EmbeddedResource (analyzers/generators
+      can't see EmbeddedResource content). Exclude anything already added as AdditionalFiles by
+      the consumer to avoid duplicate-item warnings.
+    -->
+    <AdditionalFiles Include="**/*.resx" Exclude="@(AdditionalFiles)" />
+
+    <!--
+      Roslyn only exposes MSBuild item metadata to analyzers/generators (as
+      "build_metadata.<ItemType>.<MetadataName>") for metadata explicitly opted in here - this
+      isn't optional wiring, the generator can't see any of these without it. RelativeDir is
+      well-known metadata (computed automatically for every item) that feeds the generated
+      class's default namespace; the other two are the per-file <AdditionalFiles ...> overrides
+      documented on LocalizationKeysGenerator.
+    -->
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="RelativeDir" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MeteionKeysNamespace" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MeteionKeysClassName" />
+  </ItemGroup>
+
+</Project>

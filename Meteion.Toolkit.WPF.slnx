@@ -7,8 +7,10 @@
     <Project Path="src/Meteion.Toolkit.Localization.Abstractions/Meteion.Toolkit.Localization.Abstractions.csproj" Id="be403e23-6f74-4181-9203-2e2921afbf70" />
     <Project Path="src/Meteion.Toolkit.Localization.Check.Core/Meteion.Toolkit.Localization.Check.Core.csproj" />
     <Project Path="src/Meteion.Toolkit.Localization.Check/Meteion.Toolkit.Localization.Check.csproj" />
+    <Project Path="src/Meteion.Toolkit.Localization.KeysGenerator/Meteion.Toolkit.Localization.KeysGenerator.csproj" />
     <Project Path="src/Meteion.Toolkit.WPF.Localization/Meteion.Toolkit.WPF.Localization.csproj" Id="4a4e4822-ac0f-4c58-b076-cdb0c593d1ce" />
     <Project Path="tests/Meteion.Toolkit.Localization.Check.Tests/Meteion.Toolkit.Localization.Check.Tests.csproj" />
+    <Project Path="tests/Meteion.Toolkit.Localization.KeysGenerator.Tests/Meteion.Toolkit.Localization.KeysGenerator.Tests.csproj" />
     <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx.csproj" />
     <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx/Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx.csproj" />
     <Project Path="tests/Meteion.Toolkit.WPF.Localization.Tests/Meteion.Toolkit.WPF.Localization.Tests.csproj" />

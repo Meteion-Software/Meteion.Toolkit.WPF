@@ -207,8 +207,9 @@ public static class LocalizationKeyChecker
 
     /// <summary>
     /// Extracts a literal <c>Key</c> from the args of a <c>{prefix:LocalizedValue ...}</c>
-    /// markup extension usage. Returns null for a dynamic <c>KeyBinding</c>-based usage,
-    /// which can't be statically resolved.
+    /// markup extension usage. Returns null for a dynamic <c>KeyBinding</c>-based usage, or a
+    /// <c>Key</c> itself supplied via a nested markup extension (e.g. <c>Key={x:Static
+    /// local:Strings.Foo}</c>) - neither can be statically resolved to a literal key here.
     /// </summary>
     private static string? ExtractKeyFromMarkupExtensionArgs(string rawArgs)
     {
@@ -228,13 +229,13 @@ public static class LocalizationKeyChecker
             var eq = token.IndexOf('=');
             if (eq >= 0 && token[..eq].Trim().Equals("Key", StringComparison.Ordinal))
             {
-                return Unquote(token[(eq + 1)..]);
+                return UnquoteKeyValue(token[(eq + 1)..]);
             }
         }
 
         // No named "Key=" - a bare leading token is the constructor's positional `key` arg.
         var first = tokens[0];
-        return first.Contains('=') ? null : Unquote(first);
+        return first.Contains('=') ? null : UnquoteKeyValue(first);
     }
 
     private static string? ExtractKeyAttribute(string attributesText)
@@ -245,7 +246,21 @@ public static class LocalizationKeyChecker
         }
 
         var match = KeyAttributePattern.Match(attributesText);
-        return match.Success ? match.Groups["value"].Value : null;
+        return match.Success ? UnquoteKeyValue(match.Groups["value"].Value) : null;
+    }
+
+    /// <summary>
+    /// Unquotes a raw <c>Key</c> value, or returns null if it's a nested markup extension
+    /// (e.g. <c>{x:Static local:Strings.Foo}</c>) rather than a literal - like <c>KeyBinding</c>,
+    /// a key supplied that way can't be statically resolved to a resx key name here, and
+    /// isn't the "used a key that doesn't exist" case this check is looking for.
+    /// </summary>
+    private static string? UnquoteKeyValue(string rawValue)
+    {
+        var trimmed = rawValue.Trim();
+        return trimmed.Length >= 2 && trimmed[0] == '{' && trimmed[^1] == '}'
+            ? null
+            : Unquote(rawValue);
     }
 
     /// <summary>

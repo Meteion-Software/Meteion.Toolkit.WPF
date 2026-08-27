@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.Localization.Abstractions\Meteion.Toolkit.Localization.Abstractions.csproj" />
+    <!-- Referenced as a normal project (not OutputItemType="Analyzer") - the tests drive the
+         generator directly via CSharpGeneratorDriver, not through an actual analyzer load. -->
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.Localization.KeysGenerator\Meteion.Toolkit.Localization.KeysGenerator.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -202,6 +202,29 @@ public class LocalizationKeyCheckerTests
     }
 
     [Fact]
+    public void XamlUsage_KeyViaXStatic_IsSkipped_NotFalsePositive()
+    {
+        // A Key sourced from a nested markup extension (e.g. a
+        // Meteion.Toolkit.Localization.KeysGenerator-generated const via x:Static) can't be
+        // statically resolved here any more than a KeyBinding can - same non-literal-Key rule.
+        using var dir = new TempDirectory();
+        dir.WriteFile("Resources.resx", Resx(("RealKey", null)));
+        dir.WriteFile("View.xaml", """
+            <Page
+                xmlns:keys="clr-namespace:MyApp.Resources"
+                xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization"
+                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                <TextBlock Text="{lx:LocalizedValue Key={x:Static keys:ResourcesKeys.RealKey}}" />
+                <lx:LocalizedValue Key="{x:Static keys:ResourcesKeys.RealKey}" />
+            </Page>
+            """);
+
+        var result = LocalizationKeyChecker.CheckDirectory(dir.Path);
+
+        Assert.Empty(result.UsageIssues);
+    }
+
+    [Fact]
     public void XamlUsage_RespectsCustomNamespacePrefix()
     {
         using var dir = new TempDirectory();

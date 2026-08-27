@@ -9,6 +9,7 @@ See the [Getting Started](docs/getting-started.md) guide for instructions on how
 - **GenericHost Support**: Integrates with .NET Generic Host for dependency injection and configuration.
 - **Navigation Management**: Simplifies navigation for views and view models.
 - **Localization Key Checking**: Catches missing/undefined localization keys before you run the app. See [Localization key checking](#localization-key-checking) below.
+- **Localization Key Autocompletion**: Generates a strongly-typed class from your `.resx` keys for autocompletion in code-behind and XAML. See [Key autocompletion](src/Meteion.Toolkit.WPF.Localization/README.md#key-autocompletion).
 
 ## Recommendations
 We recommend using this alongside CommunityToolkit.Mvvm for a complete MVVM experience.

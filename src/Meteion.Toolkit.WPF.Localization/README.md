@@ -52,6 +52,50 @@ Follow the standard .NET convention:
 The [ResxManager](https://marketplace.visualstudio.com/items?itemName=TomEnglert.ResXManager) is fantastic!
 
 
+## Key autocompletion
+[Meteion.Toolkit.Localization.KeysGenerator](https://www.nuget.org/packages/Meteion.Toolkit.Localization.KeysGenerator) is a Roslyn source generator that turns every key in your neutral `.resx` into a `public const string`, so both code-behind and XAML get autocompletion over your resource keys - and a rename or typo becomes a compile error instead of a silent runtime miss.
+
+Add it to your app project:
+```bash
+dotnet add package Meteion.Toolkit.Localization.KeysGenerator
+```
+That's it - it wires itself into your build automatically, no other setup required. For `Resources.resx`, it generates a class named `ResourcesKeys` (in a namespace mirroring the resx's folder, same convention the .NET SDK's own resx code generator uses) with one const per key, and the resx value as that const's XML-doc summary:
+
+```csharp
+namespace MyApp.Resources
+{
+    public static partial class ResourcesKeys
+    {
+        /// <summary>
+        /// <c>"Hello there!"</c>
+        /// </summary>
+        public const string Greeting = "Greeting";
+    }
+}
+```
+
+Use it in code-behind exactly like any other const:
+```csharp
+var text = loc.GetString(ResourcesKeys.Greeting);
+```
+
+In XAML, reference it via `x:Static` for full IntelliSense and a compile-time-checked key:
+```xml
+<TextBlock Text="{lx:LocalizedValue Key={x:Static resources:ResourcesKeys.Greeting}}" />
+```
+
+You can also just type `Key="..."` as a plain string literal - `LocalizedValueExtension.Key` carries a `TypeConverter` that lists every key discovered from a generated class in any loaded assembly, so Visual Studio's XAML editor offers it as an attribute-value dropdown. This is a convenience list, not a validator (it can't see a key from a different, not-yet-loaded assembly, or one that's only ever supplied via `KeyBinding`), so prefer `x:Static` when you want the key checked at compile time.
+
+If a project has more than one resx family, or a class/namespace name would collide with something else (e.g. the standard `ResXFileCodeGenerator`'s own `Resources.Designer.cs`, which the generator's default `{ResxBaseName}Keys` naming is deliberately chosen to avoid), override either per file:
+```xml
+<AdditionalFiles Update="Resources\Resources.resx" MeteionKeysClassName="Strings" MeteionKeysNamespace="MyApp.Localization" />
+```
+
+If you'd rather not ship the generator inside your app at all (it's a build-time-only analyzer, never a runtime dependency - `dotnet add package` already sets this up correctly), reference it as:
+```
+<PackageReference Include="Meteion.Toolkit.Localization.KeysGenerator" PrivateAssets="all" />
+```
+
 ## Localization key checking
 [Meteion.Toolkit.Localization.Check](https://www.nuget.org/packages/Meteion.Toolkit.Localization.Check) scans your `.resx` resources and XAML for two kinds of localization gaps that would otherwise only surface at runtime (or not at all):
 

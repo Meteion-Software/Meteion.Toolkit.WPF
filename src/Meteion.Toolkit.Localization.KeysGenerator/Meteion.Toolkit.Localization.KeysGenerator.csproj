@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <!-- Roslyn loads analyzers/generators out-of-process against its own compiler version,
+         not the consuming project's target framework - netstandard2.0 is the widest-compatible
+         target and the one Roslyn itself requires for analyzer/generator assemblies. -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+    <!-- This package ships only an analyzer/generator assembly - no lib\ ref/runtime assembly
+         for consumers to bind against, so suppress NuGet's "no lib or ref assembly" warning. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+
+    <Description>Roslyn incremental source generator that emits a `public const string` class - name and neutral-culture value - for every key in your neutral .resx localization resources, for autocompletion of Meteion.Toolkit.WPF.Localization resource keys in code-behind and (via Key="..." IntelliSense / x:Static) in XAML. Add a PackageReference and it wires itself into your build automatically - no other setup required.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Ship the generator assembly itself as an analyzer, not a normal lib reference. -->
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+
+    <!--
+      Same build\ + buildTransitive\ duplication as Meteion.Toolkit.Localization.Check - see
+      that package's .csproj for why both copies are needed. This one adds every project .resx
+      as an AdditionalFiles input so the generator sees it without any consumer setup.
+    -->
+    <None Include="build\Meteion.Toolkit.Localization.KeysGenerator.props" Pack="true" PackagePath="build\Meteion.Toolkit.Localization.KeysGenerator.props" />
+    <None Include="build\Meteion.Toolkit.Localization.KeysGenerator.props" Pack="true" PackagePath="buildTransitive\Meteion.Toolkit.Localization.KeysGenerator.props" />
+  </ItemGroup>
+
+</Project>

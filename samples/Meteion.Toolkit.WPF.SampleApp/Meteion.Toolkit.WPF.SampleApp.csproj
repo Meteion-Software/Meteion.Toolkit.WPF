@@ -21,6 +21,9 @@
     <!-- Build-order only (not a binary dependency) - ensures the checker tool is built
          before the .targets Import below tries to run it. -->
     <ProjectReference Include="..\..\src\Meteion.Toolkit.Localization.Check\Meteion.Toolkit.Localization.Check.csproj" ReferenceOutputAssembly="false" Private="false" />
+    <!-- The keys generator is an analyzer, not a binary dependency - OutputItemType="Analyzer"
+         loads its output into the compiler as a source generator instead of referencing it. -->
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.Localization.KeysGenerator\Meteion.Toolkit.Localization.KeysGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <!--
@@ -29,6 +32,14 @@
     file for how a real package consumer gets this automatically.
   -->
   <Import Project="..\..\src\Meteion.Toolkit.Localization.Check\build\Meteion.Toolkit.Localization.Check.targets" />
+
+  <!--
+    Same dogfooding for the keys-generator package - see that project's build\*.props file for
+    how a real package consumer gets the AdditionalFiles wiring automatically. A ProjectReference
+    (unlike a real PackageReference) doesn't auto-import a package's build\*.props, so this repo
+    has to do it explicitly.
+  -->
+  <Import Project="..\..\src\Meteion.Toolkit.Localization.KeysGenerator\build\Meteion.Toolkit.Localization.KeysGenerator.props" />
 
   <ItemGroup>
     <Compile Update="Resources\Resources.Designer.cs">

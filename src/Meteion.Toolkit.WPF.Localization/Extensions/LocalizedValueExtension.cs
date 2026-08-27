@@ -22,6 +22,13 @@ namespace Meteion.Toolkit.WPF.Localization.Extensions;
 [MarkupExtensionReturnType(typeof(object))]
 public class LocalizedValueExtension : MarkupExtension
 {
+    /// <summary>
+    /// The resource key to resolve. The <see cref="TypeConverterAttribute"/> below drives the
+    /// "Key=..." attribute-value dropdown in Visual Studio's XAML editor once
+    /// <c>Meteion.Toolkit.Localization.KeysGenerator</c> has generated a keys class for at
+    /// least one loaded assembly - see <see cref="LocalizationKeyConverter"/>.
+    /// </summary>
+    [TypeConverter(typeof(LocalizationKeyConverter))]
     public string? Key { get; set; }
     public Assembly? Assembly { get; set; }
 

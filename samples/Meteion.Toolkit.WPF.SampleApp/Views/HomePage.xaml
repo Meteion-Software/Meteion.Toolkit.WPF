@@ -3,6 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:keys="clr-namespace:Meteion.Toolkit.WPF.SampleApp.Resources"
     xmlns:local="clr-namespace:Meteion.Toolkit.WPF.SampleApp.Views"
     xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -83,6 +84,18 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <!--
+                6. Key via x:Static against Meteion.Toolkit.Localization.KeysGenerator's
+                generated ResourcesKeys class (see Resources\Resources.resx) instead of a raw
+                string literal - gets full member IntelliSense in the XAML editor, and a rename
+                or typo in the resx key becomes a compile error here instead of a silent runtime
+                miss. (Typing Key="..." as a literal also gets an IntelliSense dropdown of known
+                keys, via LocalizedValueExtension.Key's TypeConverter - this is the compile-time-
+                checked alternative to that.)
+            -->
+            <TextBlock FontStyle="Italic" Text="6. Key via x:Static -&gt; generated ResourcesKeys class:" />
+            <TextBlock Margin="0,0,0,10" Text="{lx:LocalizedValue Key={x:Static keys:ResourcesKeys.ScopeID}}" />
         </StackPanel>
     </Grid>
 </Page>
