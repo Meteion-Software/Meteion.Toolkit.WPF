@@ -1,3 +1,5 @@
+using Microsoft.CodeAnalysis.CSharp;
+
 namespace Meteion.Toolkit.Localization.KeysGenerator.Tests;
 
 public class LocalizationKeysGeneratorTests
@@ -29,6 +31,28 @@ public class LocalizationKeysGeneratorTests
         Assert.Contains("""public const string Farewell = "Farewell";""", generated);
         Assert.Contains("Hello there!", generated);
         Assert.Contains("Goodbye", generated);
+    }
+
+    [Fact]
+    public void GeneratesSyntacticallyValidSource_ForMultiLineValue()
+    {
+        // A resx <value> can legitimately span several lines (e.g. wizard instructions).
+        // Regression test for a bug where those embedded newlines landed in the generated
+        // .g.cs file without a "///" prefix on the continuation lines, falling out of the doc
+        // comment and producing a wall of build errors from a single long string.
+        var multiLineValue = "Instructions go here\nFirst paragraph.\nSecond paragraph, line one.\nSecond paragraph, line two.";
+        var resx = Resx(("Instructions", multiLineValue, null));
+
+        var results = GeneratorTestHarness.Run([("Resources/Resources.resx", resx)]);
+        var generated = Assert.Single(results).Value;
+
+        Assert.Contains("""public const string Instructions = "Instructions";""", generated);
+
+        var tree = CSharpSyntaxTree.ParseText(generated);
+        var errors = tree.GetDiagnostics()
+            .Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+            .ToList();
+        Assert.True(errors.Count == 0, $"Generated source failed to parse:{Environment.NewLine}{string.Join(Environment.NewLine, errors)}{Environment.NewLine}{Environment.NewLine}{generated}");
     }
 
     [Fact]

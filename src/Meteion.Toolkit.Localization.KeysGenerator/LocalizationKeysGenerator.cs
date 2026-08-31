@@ -216,7 +216,7 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
             var identifier = MakeUniqueIdentifier(name, usedIdentifiers);
 
             builder.AppendLine($"{indent}    /// <summary>");
-            builder.AppendLine($"{indent}    /// <c>\"{XmlEscape(value)}\"</c>");
+            AppendValueDoc(builder, indent, value);
             builder.AppendLine($"{indent}    /// </summary>");
             builder.AppendLine($"{indent}    public const string {identifier} = {QuoteLiteral(name)};");
             builder.AppendLine();
@@ -230,6 +230,32 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// Writes <paramref name="value"/> as a <c>&lt;c&gt;</c>-wrapped doc-comment body. A resx
+    /// <c>&lt;value&gt;</c> can legitimately span multiple lines (e.g. wizard instructions) - a
+    /// naive single <c>AppendLine</c> would embed those line breaks as bare, un-prefixed lines
+    /// in the generated <c>.g.cs</c> file, which fall out of the doc comment and become invalid
+    /// top-level statements, cascading into a wall of build errors from one long string. Every
+    /// physical line gets its own <c>///</c> prefix instead.
+    /// </summary>
+    private static void AppendValueDoc(StringBuilder builder, string indent, string value)
+    {
+        var lines = value.Replace("\r\n", "\n").Split('\n');
+        if (lines.Length == 1)
+        {
+            builder.AppendLine($"{indent}    /// <c>\"{XmlEscape(lines[0])}\"</c>");
+            return;
+        }
+
+        builder.AppendLine($"{indent}    /// <c>");
+        foreach (var line in lines)
+        {
+            builder.AppendLine($"{indent}    /// {XmlEscape(line)}");
+        }
+
+        builder.AppendLine($"{indent}    /// </c>");
     }
 
     private static string MakeUniqueIdentifier(string name, HashSet<string> usedIdentifiers)
