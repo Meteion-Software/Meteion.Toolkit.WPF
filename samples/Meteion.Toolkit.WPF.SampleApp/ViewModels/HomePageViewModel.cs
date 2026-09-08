@@ -28,6 +28,14 @@ public partial class HomePageViewModel : INotifyPropertyChanged
     public string ScopeId { get => _scopeIdProvider.Id.ToString(); }
 
     /// <summary>
+    /// Backs the CultureAwareFormat usage example — a plain number/date, formatted
+    /// according to whatever language the user has picked via SwitchLanguageCommand.
+    /// </summary>
+    public decimal Amount { get; } = 1234567.89m;
+
+    public DateTime Today { get; } = DateTime.Now;
+
+    /// <summary>
     /// Resource keys the user can pick from, to drive the KeyBinding-via-ComboBox example.
     /// </summary>
     public ObservableCollection<string> AvailableKeys { get; } = new(

@@ -141,4 +141,78 @@ public class LocalizationServiceTests
 
         Assert.False(raised);
     }
+
+    [Fact]
+    public void CurrentCulture_SetToDifferentValue_SyncsThreadCulture()
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        var originalUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            var service = CreateService(new FakeLocalizationProvider());
+            var newCulture = new CultureInfo("ja-JP");
+
+            service.CurrentCulture = newCulture;
+
+            // Code that formats without an explicit culture/provider (DateTime.ToString(),
+            // decimal.ToString(), resx lookups via CurrentUICulture, ...) must follow the
+            // app's selected language rather than silently keeping the OS locale.
+            Assert.Equal(newCulture, CultureInfo.CurrentCulture);
+            Assert.Equal(newCulture, CultureInfo.CurrentUICulture);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
+    }
+
+    [Fact]
+    public void Constructor_DefaultCultureConfigured_SyncsThreadCultureImmediately()
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        var originalUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            var configuredCulture = new CultureInfo("fr-CA");
+
+            CreateService(new FakeLocalizationProvider(), new LocalizationOptions { DefaultCulture = configuredCulture });
+
+            // The starting culture must be applied too, not just later changes — otherwise a
+            // DefaultCulture differing from the OS locale would only take effect once someone
+            // explicitly re-sets CurrentCulture after construction.
+            Assert.Equal(configuredCulture, CultureInfo.CurrentCulture);
+            Assert.Equal(configuredCulture, CultureInfo.CurrentUICulture);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
+    }
+
+    [Fact]
+    public void CurrentCulture_SetToSameValue_DoesNotResyncThreadCulture()
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        var originalUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            var options = new LocalizationOptions { DefaultCulture = new CultureInfo("en-CA") };
+            var service = CreateService(new FakeLocalizationProvider(), options);
+
+            // Deliberately mutate the ambient culture after construction to prove a no-op
+            // set (same culture as already current) doesn't stomp back over it.
+            CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+
+            service.CurrentCulture = new CultureInfo("en-CA");
+
+            Assert.Equal(new CultureInfo("de-DE"), CultureInfo.CurrentCulture);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
+    }
 }

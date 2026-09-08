@@ -10,6 +10,8 @@ See the [Getting Started](docs/getting-started.md) guide for instructions on how
 - **Navigation Management**: Simplifies navigation for views and view models.
 - **Localization Key Checking**: Catches missing/undefined localization keys before you run the app. See [Localization key checking](#localization-key-checking) below.
 - **Localization Key Autocompletion**: Generates a strongly-typed class from your `.resx` keys for autocompletion in code-behind and XAML. See [Key autocompletion](src/Meteion.Toolkit.WPF.Localization/README.md#key-autocompletion).
+- **Runtime Culture Switching**: Change the app's language independently of the OS locale — keeps `Thread.CurrentCulture`, resx lookups, and `FrameworkElement.Language` all in sync. See [Changing the current culture at runtime](src/Meteion.Toolkit.WPF.Localization/README.md#changing-the-current-culture-at-runtime).
+- **Culture-Aware Formatting**: `{lx:CultureAwareFormat}` formats bound numbers/dates/currency using the app's current culture, live. See [Culture-aware number/date/currency formatting](src/Meteion.Toolkit.WPF.Localization/README.md#culture-aware-numberdatecurrency-formatting).
 
 ## Recommendations
 We recommend using this alongside CommunityToolkit.Mvvm for a complete MVVM experience.
@@ -22,7 +24,7 @@ A: The CommunityToolkit.IoC is a simple IoC container that is not designed for c
 
 Q: Why use Meteion.Toolkit.Localization instead of ``{x:Static }`` or ``Properties.Resources.Blah``?
 
-A: The localization library includes a lot of helpful features, such as binding keys, and changing the language at runtime.
+A: The localization library includes a lot of helpful features, such as binding keys, changing the language at runtime (with `Thread.CurrentCulture` and `FrameworkElement.Language` kept in sync automatically), and culture-aware number/date/currency formatting that updates live when the language changes.
 ## TODO
 
 Some short-term goals are:

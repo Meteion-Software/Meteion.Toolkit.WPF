@@ -96,6 +96,16 @@
             -->
             <TextBlock FontStyle="Italic" Text="6. Key via x:Static -&gt; generated ResourcesKeys class:" />
             <TextBlock Margin="0,0,0,10" Text="{lx:LocalizedValue Key={x:Static keys:ResourcesKeys.ScopeID}}" />
+
+            <!--
+                7. CultureAwareFormat: formats a bound number/date using
+                ILocalizationService.CurrentCulture, re-formatting live both when the bound
+                value changes and (unlike a plain {Binding ..., StringFormat=...}) when the
+                user picks a different language via SwitchLanguageCommand above.
+            -->
+            <TextBlock FontStyle="Italic" Text="7. CultureAwareFormat -&gt; number/date formatting follows the selected language:" />
+            <TextBlock Text="{lx:CultureAwareFormat Value={Binding Amount}, FormatString=C}" />
+            <TextBlock Margin="0,0,0,10" Text="{lx:CultureAwareFormat Value={Binding Today}, FormatString=D}" />
         </StackPanel>
     </Grid>
 </Page>

@@ -38,6 +38,46 @@ short per-item suffix, while the shared resx key namespace lives once in XAML:
 <TextBlock Text="{lx:LocalizedValue KeyPrefix=Feature_, KeyBinding={Binding Key}}" />
 ```
 
+## Changing the current culture at runtime
+
+Set `ILocalizationService.CurrentCulture` (or, outside DI, `ToolkitLocalizer.CurrentCulture`) to switch
+the app's language independently of the OS locale — no restart required:
+
+```csharp
+_localizationService.CurrentCulture = new CultureInfo("ja-JP");
+```
+
+This keeps everything in sync, not just resx string lookups:
+
+- `CultureInfo.CurrentCulture` / `CurrentUICulture` (thread-scoped) — so code that formats without an
+  explicit culture/provider (`DateTime.ToString()`, `decimal.ToString()`, etc.) follows the selected
+  language instead of the OS locale.
+- `FrameworkElement.Language` on every open window — WPF's own binding pipeline (`StringFormat`, and
+  any bound value's implicit `ToString` conversion) resolves its formatting culture from there, *not*
+  from `CultureInfo.CurrentCulture`, and every element defaults it to `en-US` regardless of the OS.
+  Without this, a plain `{Binding Total, StringFormat=C}` would never follow a language change.
+
+## Culture-aware number/date/currency formatting
+
+A plain `{Binding ..., StringFormat=...}` only reformats when the *bound value itself* changes — not
+when the user later switches languages via `CurrentCulture` above. `CultureAwareFormatExtension`
+formats a bound `IFormattable` value (numbers, dates, currency, ...) using
+`ILocalizationService.CurrentCulture`, live: the displayed text updates both when the bound value
+changes and whenever the current culture changes.
+
+```xml
+<TextBlock Text="{lx:CultureAwareFormat Value={Binding Total}, FormatString=C}" />
+<TextBlock Text="{lx:CultureAwareFormat Value={Binding Today}, FormatString=D}" />
+```
+
+`FormatString` accepts any standard or custom .NET format string (e.g. `C`, `N2`, `d`, `D`).
+
+For a one-off, non-live conversion — or to use it as an ordinary `Binding.Converter` — the extension's
+underlying `CultureAwareFormatConverter` can also be used directly:
+
+```xml
+<TextBlock Text="{Binding Total, Converter={StaticResource CultureAwareFormatConverter}, ConverterParameter=C}" />
+```
 
 ## Naming Conventions
 This library expects **one resx "family" per assembly** — `ILocalizationProvider` only receives an `Assembly`, not a file/dictionary name, so all your localized strings for a given assembly need to live under a single shared base name.
