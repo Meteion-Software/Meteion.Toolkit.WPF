@@ -24,6 +24,14 @@ public partial class MainWindow : Window, INavigationShellWindow
         InitializeComponent();
         _navService.Initialize(ShellFrame);
         Title = $"Main Window - ScopeId: {_scopeIdService.Id}";
+
+        // NavigationService also implements INavigationProgress; wire the overlay up to it so
+        // slow OnNavigatedToAsync calls (anything over NavigationIndicatorDelay) show a spinner.
+        if (_navService is INavigationProgress navProgress)
+        {
+            navProgress.NavigationStarted += (_, _) => NavigationBusyOverlay.IsBusy = true;
+            navProgress.NavigationCompleted += (_, _) => NavigationBusyOverlay.IsBusy = false;
+        }
     }
 
     public Frame GetNavigationFrame() => ShellFrame;

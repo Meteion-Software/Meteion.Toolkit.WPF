@@ -15,4 +15,27 @@ internal static class DispatcherTestHelper
         Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
         Dispatcher.PushFrame(frame);
     }
+
+    /// <summary>
+    /// Repeatedly drains the dispatcher until <paramref name="condition"/> is met. Needed to carry
+    /// a NavigateTo()/GoBack() call all the way through to completion in a test: nothing else is
+    /// running a message loop to process the Frame's dispatcher-queued Navigating/Navigated events,
+    /// so simply awaiting the returned Task hangs forever. Throws <see cref="TimeoutException"/>
+    /// rather than hanging indefinitely if <paramref name="condition"/> is never met.
+    /// </summary>
+    public static void PumpUntil(Func<bool> condition, TimeSpan? timeout = null)
+    {
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(5));
+
+        while (!condition())
+        {
+            if (DateTime.UtcNow > deadline)
+            {
+                throw new TimeoutException("Condition was not met before the timeout elapsed.");
+            }
+
+            DrainDispatcher();
+            Thread.Sleep(1);
+        }
+    }
 }

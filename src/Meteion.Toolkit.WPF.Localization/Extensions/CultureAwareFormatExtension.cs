@@ -67,6 +67,6 @@ public class CultureAwareFormatExtension : MarkupExtension
             Mode = BindingMode.OneWay,
         });
 
-        return multiBinding;
+        return multiBinding.ProvideValue(serviceProvider);
     }
 }

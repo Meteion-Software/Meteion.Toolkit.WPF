@@ -6,3 +6,4 @@ using System.Windows.Markup;
 [assembly: XmlnsDefinition(@"http://wpf.meteion.ca/winfx/xaml", "Meteion.Toolkit.WPF")]
 [assembly: XmlnsDefinition(@"http://wpf.meteion.ca/winfx/xaml", "Meteion.Toolkit.WPF.Converters")]
 [assembly: XmlnsDefinition(@"http://wpf.meteion.ca/winfx/xaml", "Meteion.Toolkit.WPF.Behaviors")]
+[assembly: XmlnsDefinition(@"http://wpf.meteion.ca/winfx/xaml", "Meteion.Toolkit.WPF.Controls")]

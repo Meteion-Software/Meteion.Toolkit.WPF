@@ -1,6 +1,7 @@
 ﻿
 using CommunityToolkit.Mvvm.Input;
 using Meteion.Toolkit.Localization.Abstractions;
+using Meteion.Toolkit.MVVM.Services;
 using Meteion.Toolkit.WPF.SampleApp.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
@@ -18,6 +19,7 @@ public partial class HomePageViewModel : INotifyPropertyChanged
 {
     private readonly IScopeIdService _scopeIdProvider;
     private readonly ILocalizationService _localizationService;
+    private readonly INavigationService _navService;
 
     private string _selectedKey = "HomePage_WelcomeMessage";
 
@@ -73,11 +75,19 @@ public partial class HomePageViewModel : INotifyPropertyChanged
         }
     }
 
-    public HomePageViewModel(IScopeIdService scopeIdProvider, ILocalizationService localizationService)
+    public HomePageViewModel(IScopeIdService scopeIdProvider, ILocalizationService localizationService, INavigationService navService)
     {
         _scopeIdProvider = scopeIdProvider;
         _localizationService = localizationService;
+        _navService = navService;
     }
+
+    /// <summary>
+    /// Navigates to SecondPage, whose OnNavigatedToAsync simulates a slow load so the navigation
+    /// busy overlay (wired up in MainWindow) has something to demonstrate.
+    /// </summary>
+    [RelayCommand]
+    public Task NavigateToSecondPage() => _navService.NavigateTo<SecondPageViewModel>();
 
     [RelayCommand]
     public void SwitchLanguage()

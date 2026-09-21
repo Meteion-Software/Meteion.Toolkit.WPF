@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:Meteion.Toolkit.WPF.SampleApp"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:meteion="http://wpf.meteion.ca/winfx/xaml"
     Title="Demo Window"
     Width="800"
     Height="450"
@@ -21,9 +22,12 @@
             <Run Text="{Binding ScopeId}" />
         </TextBlock>
 
-        <Frame
-            x:Name="ShellFrame"
-            Grid.Row="1"
-            NavigationUIVisibility="Hidden" />
+        <Grid Grid.Row="1">
+            <Frame
+                x:Name="ShellFrame"
+                NavigationUIVisibility="Hidden" />
+
+            <meteion:BusyOverlay x:Name="NavigationBusyOverlay" />
+        </Grid>
     </Grid>
 </Window>

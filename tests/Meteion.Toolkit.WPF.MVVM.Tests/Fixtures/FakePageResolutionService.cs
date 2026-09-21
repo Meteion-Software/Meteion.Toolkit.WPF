@@ -16,17 +16,30 @@ public class FakePageResolutionService : IPageResolutionService
     public Func<Type, Page>? PageInstanceFactory { get; set; }
     public object? ViewModelInstanceToReturn { get; set; }
 
+    // Per-view-model-type overrides, for tests that navigate between more than one
+    // view model and so can't rely on the single fallback values above. Checked first;
+    // the singular properties remain as a fallback for existing single-target tests.
+    public Dictionary<Type, Type> PageTypesByViewModelType { get; } = new();
+    public Dictionary<Type, Func<Page>> PageFactoriesByViewModelType { get; } = new();
+    public Dictionary<Type, object> ViewModelInstancesByViewModelType { get; } = new();
+
     public void AddPage<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Transient)
         where T_ViewModel : INotifyPropertyChanged
         where T_View : Page
         => throw new NotImplementedException();
 
     public Type GetPageFor(Type viewModelType)
-        => PageTypeToReturn ?? throw new InvalidOperationException("PageTypeToReturn not configured.");
+        => PageTypesByViewModelType.TryGetValue(viewModelType, out var pageType)
+            ? pageType
+            : PageTypeToReturn ?? throw new InvalidOperationException("PageTypeToReturn not configured.");
 
     public Page GetPageInstance(Type viewModelType)
-        => PageInstanceFactory?.Invoke(viewModelType) ?? throw new InvalidOperationException("PageInstanceFactory not configured.");
+        => PageFactoriesByViewModelType.TryGetValue(viewModelType, out var factory)
+            ? factory()
+            : PageInstanceFactory?.Invoke(viewModelType) ?? throw new InvalidOperationException("PageInstanceFactory not configured.");
 
     public object GetViewModelInstance(Type viewModelType)
-        => ViewModelInstanceToReturn ?? throw new InvalidOperationException("ViewModelInstanceToReturn not configured.");
+        => ViewModelInstancesByViewModelType.TryGetValue(viewModelType, out var viewModel)
+            ? viewModel
+            : ViewModelInstanceToReturn ?? throw new InvalidOperationException("ViewModelInstanceToReturn not configured.");
 }
