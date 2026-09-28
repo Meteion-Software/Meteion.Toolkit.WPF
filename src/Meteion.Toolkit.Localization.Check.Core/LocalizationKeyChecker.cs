@@ -72,8 +72,16 @@ public static class LocalizationKeyChecker
             ? CheckXamlUsages(rootDirectory, options, project, resourceGroups)
             : [];
 
+        if (options.CheckLiterals)
+        {
+            usageIssues.AddRange(CheckLiterals(rootDirectory, options));
+        }
+
         return new LocalizationCheckResult(resourceIssues, usageIssues);
     }
+
+    private static IEnumerable<LocalizationKeyUsageIssue> CheckLiterals(string rootDirectory, LocalizationCheckOptions options) =>
+        EnumerateFiles(rootDirectory, "*.xaml", options).SelectMany(path => XamlLiteralChecker.Check(path, options));
 
     private static List<LocalizationKeyIssue> CheckResourceGroups(IReadOnlyList<ResourceGroup> groups, LocalizationCheckOptions options)
     {

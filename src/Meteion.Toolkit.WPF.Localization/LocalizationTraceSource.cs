@@ -35,6 +35,20 @@ internal static class LocalizationTraceSource
             "exists in the resx it names (or the resolved culture's satellite .resx) for that assembly.");
     }
 
+    public static void TraceUnsetKey()
+    {
+        var source = PresentationTraceSources.DataBindingSource;
+        if (!source.Switch.ShouldTrace(TraceEventType.Warning))
+        {
+            return;
+        }
+
+        source.TraceEvent(TraceEventType.Warning, 0,
+            "Meteion.Toolkit.WPF.Localization Warning: KeyBinding produced DependencyProperty.UnsetValue " +
+            "(the key binding did not resolve), so no text was looked up. Check the KeyBinding path and " +
+            "DataContext, or set FallbackValue on it to supply a placeholder key.");
+    }
+
     public static void TraceConfigurationError(string message)
     {
         var source = PresentationTraceSources.DataBindingSource;

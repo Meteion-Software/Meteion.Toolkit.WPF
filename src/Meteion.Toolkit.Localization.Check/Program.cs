@@ -2,6 +2,7 @@ using Meteion.Toolkit.Localization.Check;
 
 // Usage: meteion-loc-check [root] [--assembly-name <name>] [--root-namespace <ns>]
 //                          [--warnaserror] [--error <LOCxxx>]... [--no-orphans] [--no-xaml]
+//                          [--check-literals] [--literal-property <name>]...
 string? rootArgument = null;
 string? assemblyName = null;
 string? rootNamespace = null;
@@ -9,6 +10,8 @@ var warningsAsErrors = false;
 var errorCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 var checkOrphans = true;
 var checkXaml = true;
+var checkLiterals = false;
+var literalProperties = new List<string>();
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -32,6 +35,10 @@ for (var i = 0; i < args.Length; i++)
             break;
         case "--no-orphans": checkOrphans = false; break;
         case "--no-xaml": checkXaml = false; break;
+        case "--check-literals": checkLiterals = true; break;
+        case "--literal-property":
+            literalProperties.AddRange(NextValue().Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            break;
         default:
             if (args[i].StartsWith('-'))
             {
@@ -50,6 +57,8 @@ var options = new LocalizationCheckOptions
 {
     CheckOrphanKeys = checkOrphans,
     CheckXamlUsages = checkXaml,
+    CheckLiterals = checkLiterals,
+    AdditionalLiteralProperties = literalProperties,
     AssemblyName = string.IsNullOrWhiteSpace(assemblyName) ? null : assemblyName,
     RootNamespace = string.IsNullOrWhiteSpace(rootNamespace) ? null : rootNamespace,
 };
@@ -96,6 +105,10 @@ foreach (var usage in result.UsageIssues)
             $"'{usage.Key}' refers to another assembly, so it can't be checked from this project.",
         LocalizationKeyUsageIssueKind.SourceWithAssembly =>
             $"Source '{usage.Key}' can't be combined with Assembly, since Source already names its assembly. Remove Assembly.",
+        LocalizationKeyUsageIssueKind.UnlocalizedLiteral =>
+            $"Un-localized literal {usage.Key}. Use a localized value ({{lx:LocalizedValue ...}}) or add '<!-- loc-ignore: reason -->' before the element.",
+        LocalizationKeyUsageIssueKind.IgnoreWithoutReason =>
+            "'loc-ignore' has no reason. Write '<!-- loc-ignore: reason -->' to explain why the element is not localized.",
         _ => $"Problem with key '{usage.Key}'.",
     };
 

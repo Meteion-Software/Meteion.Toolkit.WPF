@@ -4,8 +4,15 @@
     <RunLocalizationKeyCheck Condition="'$(RunLocalizationKeyCheck)' == ''">true</RunLocalizationKeyCheck>
 
     <!--
+      Un-localized literal check (LOC009/LOC010): flags plain string literals in Text, Content,
+      Header, ToolTip, Title, etc. Off by default. MeteionLocalizationLiteralProperties adds
+      extra property names (";"-separated) to the built-in list.
+    -->
+    <MeteionLocalizationCheckLiterals Condition="'$(MeteionLocalizationCheckLiterals)' == ''">false</MeteionLocalizationCheckLiterals>
+
+    <!--
       Severity: every diagnostic is a warning by default. Set
-      MeteionLocalizationWarningsAsErrors=true to make all of them (LOC001-LOC006, LOC008) errors, or list
+      MeteionLocalizationWarningsAsErrors=true to make all of them (LOC001-LOC006, LOC008-LOC010) errors, or list
       specific codes in MeteionLocalizationErrorCodes (e.g. "LOC003;LOC004"). LOC007 is
       informational and never promoted.
     -->
@@ -38,6 +45,8 @@
       <_MeteionLocCheckArgs>&quot;$(MSBuildProjectDirectory)&quot; --assembly-name &quot;$(AssemblyName)&quot; --root-namespace &quot;$(RootNamespace)&quot;</_MeteionLocCheckArgs>
       <_MeteionLocCheckArgs Condition="'$(MeteionLocalizationWarningsAsErrors)' == 'true'">$(_MeteionLocCheckArgs) --warnaserror</_MeteionLocCheckArgs>
       <_MeteionLocCheckArgs Condition="'$(MeteionLocalizationErrorCodes)' != ''">$(_MeteionLocCheckArgs) --error &quot;$(MeteionLocalizationErrorCodes)&quot;</_MeteionLocCheckArgs>
+      <_MeteionLocCheckArgs Condition="'$(MeteionLocalizationCheckLiterals)' == 'true'">$(_MeteionLocCheckArgs) --check-literals</_MeteionLocCheckArgs>
+      <_MeteionLocCheckArgs Condition="'$(MeteionLocalizationCheckLiterals)' == 'true' and '$(MeteionLocalizationLiteralProperties)' != ''">$(_MeteionLocCheckArgs) --literal-property &quot;$(MeteionLocalizationLiteralProperties)&quot;</_MeteionLocCheckArgs>
     </PropertyGroup>
 
     <!--
