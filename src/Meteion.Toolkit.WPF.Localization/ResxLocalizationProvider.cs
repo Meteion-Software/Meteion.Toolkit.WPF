@@ -1,5 +1,4 @@
-﻿using Meteion.Toolkit.Localization.Abstractions;
-using Microsoft.Extensions.Options;
+using Meteion.Toolkit.Localization.Abstractions;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Globalization;
@@ -8,46 +7,79 @@ using System.Resources;
 
 namespace Meteion.Toolkit.WPF.Localization;
 
-internal sealed class ResxLocalizationProvider(IOptions<LocalizationOptions> options) : ILocalizationProvider
+internal sealed class ResxLocalizationProvider : ILocalizationProvider
 {
-    private readonly ConcurrentDictionary<Assembly, ResourceManager> _managers = new();
-    private readonly LocalizationOptions _options = options.Value;
+    private const string ResourcesSuffix = ".resources";
 
-    public string? GetLocalizedString(string key, Assembly resourceAssembly, CultureInfo culture)
-        => GetManager(resourceAssembly).GetString(key, culture);
+    // A null base name is the "this assembly's only resx" fallback for unqualified keys.
+    private readonly ConcurrentDictionary<(Assembly Assembly, string? BaseName), ResourceManager> _managers = new();
+
+    public string? GetLocalizedString(LocalizationKey key, Assembly resourceAssembly, CultureInfo culture)
+    {
+        var manager = GetManager(resourceAssembly, key.BaseName);
+        try
+        {
+            return manager.GetString(key.Key, culture);
+        }
+        catch (MissingManifestResourceException ex)
+        {
+            throw new LocalizationConfigurationException(
+                $"Assembly '{resourceAssembly.GetName().Name}' has no embedded resx named '{key.BaseName}' " +
+                $"(key '{key}'). Its embedded resx files are: {string.Join(", ", GetBaseNames(resourceAssembly))}. " +
+                "If the generator computed the wrong name, set MeteionResourceBaseName metadata on the resx's AdditionalFiles item.",
+                ex);
+        }
+    }
 
     public IEnumerable<string> GetAvailableKeys(Assembly resourceAssembly)
     {
-        var set = GetManager(resourceAssembly).GetResourceSet(CultureInfo.InvariantCulture, true, true);
-        return set?.Cast<DictionaryEntry>().Select(e => (string)e.Key) ?? Enumerable.Empty<string>();
+        var assemblyName = resourceAssembly.GetName().Name!;
+
+        foreach (var baseName in GetBaseNames(resourceAssembly))
+        {
+            var set = GetManager(resourceAssembly, baseName).GetResourceSet(CultureInfo.InvariantCulture, true, true);
+            if (set is null)
+            {
+                continue;
+            }
+
+            foreach (DictionaryEntry entry in set)
+            {
+                if (entry.Value is string)
+                {
+                    yield return LocalizationKey.Qualified(assemblyName, baseName, (string)entry.Key).ToString();
+                }
+            }
+        }
     }
 
-    private ResourceManager GetManager(Assembly assembly)
-        => _managers.GetOrAdd(assembly, asm =>
+    private ResourceManager GetManager(Assembly assembly, string? baseName)
+        => _managers.GetOrAdd((assembly, baseName), static k => new ResourceManager(k.BaseName ?? GetOnlyBaseName(k.Assembly), k.Assembly));
+
+    private static string GetOnlyBaseName(Assembly assembly)
+    {
+        var names = GetBaseNames(assembly);
+
+        if (names.Length == 0)
         {
-            if (_options.ResourceBaseNameSelector is { } selector)
-            {
-                return new ResourceManager(selector(asm), asm);
-            }
+            throw new LocalizationConfigurationException(
+                $"Assembly '{assembly.GetName().Name}' has no embedded .resources files. Add a .resx file.");
+        }
 
-            var names = asm.GetManifestResourceNames()
-                .Where(n => n.EndsWith(".resources", StringComparison.Ordinal) && !n.EndsWith(".g.resources", StringComparison.Ordinal))
-                .ToArray();
+        if (names.Length > 1)
+        {
+            throw new LocalizationConfigurationException(
+                $"Assembly '{assembly.GetName().Name}' has multiple embedded .resources files " +
+                $"({string.Join(", ", names)}), so an unqualified key is ambiguous. Use a generated qualified key " +
+                "(e.g. {x:Static strings:StringsKeys.MyKey}) or set LocalizedValue.Source.");
+        }
 
-            if (names.Length == 0)
-            {
-                throw new LocalizationConfigurationException(
-                    $"Assembly '{asm.GetName().Name}' has no embedded .resources files. " +
-                    "Add a .resx file, or configure LocalizationOptions.ResourceBaseNameSelector.");
-            }
+        return names[0];
+    }
 
-            if (names.Length > 1)
-            {
-                throw new LocalizationConfigurationException(
-                    $"Assembly '{asm.GetName().Name}' has multiple embedded .resources files " +
-                    $"({string.Join(", ", names)}) — configure LocalizationOptions.ResourceBaseNameSelector to disambiguate.");
-            }
-
-            return new ResourceManager(names[0][..^".resources".Length], asm);
-        });
+    private static string[] GetBaseNames(Assembly assembly)
+        => assembly.GetManifestResourceNames()
+            .Where(n => n.EndsWith(ResourcesSuffix, StringComparison.Ordinal) && !n.EndsWith(".g.resources", StringComparison.Ordinal))
+            .Select(n => n[..^ResourcesSuffix.Length])
+            .ToArray();
 }

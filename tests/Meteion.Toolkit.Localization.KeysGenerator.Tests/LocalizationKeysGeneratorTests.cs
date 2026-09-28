@@ -27,8 +27,8 @@ public class LocalizationKeysGeneratorTests
         var results = GeneratorTestHarness.Run([("Resources/Resources.resx", resx)]);
 
         var generated = Assert.Single(results).Value;
-        Assert.Contains("""public const string Greeting = "Greeting";""", generated);
-        Assert.Contains("""public const string Farewell = "Farewell";""", generated);
+        Assert.Contains("""public const string Greeting = "TestAssembly/TestApp.Resources.Resources:Greeting";""", generated);
+        Assert.Contains("""public const string Farewell = "TestAssembly/TestApp.Resources.Resources:Farewell";""", generated);
         Assert.Contains("Hello there!", generated);
         Assert.Contains("Goodbye", generated);
     }
@@ -46,7 +46,7 @@ public class LocalizationKeysGeneratorTests
         var results = GeneratorTestHarness.Run([("Resources/Resources.resx", resx)]);
         var generated = Assert.Single(results).Value;
 
-        Assert.Contains("""public const string Instructions = "Instructions";""", generated);
+        Assert.Contains("""public const string Instructions = "TestAssembly/TestApp.Resources.Resources:Instructions";""", generated);
 
         var tree = CSharpSyntaxTree.ParseText(generated);
         var errors = tree.GetDiagnostics()
@@ -94,8 +94,8 @@ public class LocalizationKeysGeneratorTests
         var results = GeneratorTestHarness.Run([("Resources.resx", resx)]);
 
         var generated = Assert.Single(results).Value;
-        Assert.Contains("""public const string My_Key = "My.Key";""", generated);
-        Assert.Contains("""public const string My_Key_2 = "My_Key";""", generated);
+        Assert.Contains("""public const string My_Key = "TestAssembly/TestApp.Resources:My.Key";""", generated);
+        Assert.Contains("""public const string My_Key_2 = "TestAssembly/TestApp.Resources:My_Key";""", generated);
     }
 
     [Fact]
@@ -152,6 +152,68 @@ public class LocalizationKeysGeneratorTests
         var generated = Assert.Single(results).Value;
         Assert.DoesNotContain("GeneratedLocalizationKeysAttribute", generated);
         // The class itself is still generated even without the marker attribute available.
-        Assert.Contains("""public const string Greeting = "Greeting";""", generated);
+        Assert.Contains("""public const string Greeting = "TestAssembly/TestApp.Resources:Greeting";""", generated);
+    }
+
+    [Fact]
+    public void EmitsResxSourceConstantAndMarkerProperty()
+    {
+        var resx = Resx(("Greeting", "Hello!", null));
+
+        var results = GeneratorTestHarness.Run([("Properties/Strings.resx", resx)], rootNamespace: "MyApp");
+
+        var generated = Assert.Single(results).Value;
+        Assert.Contains("""public const string ResxSource = "TestAssembly/MyApp.Properties.Strings";""", generated);
+        Assert.Contains("""ResxSource = "TestAssembly/MyApp.Properties.Strings")]""", generated);
+        Assert.Contains("""public const string Greeting = "TestAssembly/MyApp.Properties.Strings:Greeting";""", generated);
+    }
+
+    [Fact]
+    public void BaseNameSanitizesDirectorySegmentsButNotFileName()
+    {
+        var resx = Resx(("Greeting", "Hello!", null));
+
+        var results = GeneratorTestHarness.Run([("My Folder/2024/Strings-Main.resx", resx)], rootNamespace: "MyApp");
+
+        var generated = Assert.Single(results).Value;
+        Assert.Contains("""public const string ResxSource = "TestAssembly/MyApp.My_Folder._2024.Strings-Main";""", generated);
+        Assert.Contains("public static partial class Strings_MainKeys", generated);
+    }
+
+    [Fact]
+    public void ResourceBaseNameMetadataOverridesComputedBaseName()
+    {
+        var resx = Resx(("Greeting", "Hello!", null));
+        var metadata = new Dictionary<string, IReadOnlyDictionary<string, string>>
+        {
+            ["Resources/Resources.resx"] = new Dictionary<string, string>
+            {
+                ["MeteionResourceBaseName"] = "Custom.Logical.Name",
+            },
+        };
+
+        var results = GeneratorTestHarness.Run([("Resources/Resources.resx", resx)], perFileMetadata: metadata);
+
+        var generated = Assert.Single(results).Value;
+        Assert.Contains("""public const string Greeting = "TestAssembly/Custom.Logical.Name:Greeting";""", generated);
+        // Only the base name is overridden - namespace/class still follow the file's location.
+        Assert.Contains("namespace TestApp.Resources", generated);
+    }
+
+    [Fact]
+    public void KeyNamedResxSource_IsRenamedAndReportsMTKGEN001()
+    {
+        var resx = Resx(("ResxSource", "Source", null), ("Greeting", "Hello!", null));
+
+        var (results, diagnostics) = GeneratorTestHarness.RunWithDiagnostics([("Resources.resx", resx)]);
+
+        var generated = Assert.Single(results).Value;
+        Assert.Contains("""public const string ResxSource = "TestAssembly/TestApp.Resources";""", generated);
+        Assert.Contains("""public const string ResxSource_2 = "TestAssembly/TestApp.Resources:ResxSource";""", generated);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("MTKGEN001", diagnostic.Id);
+        Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Contains("ResxSource_2", diagnostic.GetMessage());
     }
 }

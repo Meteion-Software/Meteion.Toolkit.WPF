@@ -32,6 +32,17 @@ internal static class LocalizationTraceSource
         source.TraceEvent(TraceEventType.Error, 0,
             $"Meteion.Toolkit.WPF.Localization Error: No localized string found for key '{key}' " +
             $"in assembly '{assembly.GetName().Name}' (MissingKeyBehavior: {behavior}). Verify the key " +
-            "exists in Resources.resx (or the resolved culture's satellite .resx) for that assembly.");
+            "exists in the resx it names (or the resolved culture's satellite .resx) for that assembly.");
+    }
+
+    public static void TraceConfigurationError(string message)
+    {
+        var source = PresentationTraceSources.DataBindingSource;
+        if (!source.Switch.ShouldTrace(TraceEventType.Error))
+        {
+            return;
+        }
+
+        source.TraceEvent(TraceEventType.Error, 0, $"Meteion.Toolkit.WPF.Localization Error: {message}");
     }
 }

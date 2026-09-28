@@ -8,7 +8,7 @@
     xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:viewmodels="clr-namespace:Meteion.Toolkit.WPF.SampleApp.ViewModels"
-    Title="{lx:LocalizedValue HomePage_WelcomeMessage}"
+    Title="{lx:LocalizedValue {x:Static keys:HomeKeys.WelcomeMessage}}"
     d:DataContext="{d:DesignInstance Type=viewmodels:HomePageViewModel}"
     d:DesignHeight="450"
     d:DesignWidth="800"
@@ -16,16 +16,16 @@
 
     <Grid>
         <StackPanel Margin="10">
-            <TextBlock Text="{lx:LocalizedValue HomePage_WelcomeMessage}" />
+            <TextBlock Text="{lx:LocalizedValue {x:Static keys:HomeKeys.WelcomeMessage}}" />
             <TextBlock>
-                <Run Text="{lx:LocalizedValue ScopeID}" /><Run Text=":" />
+                <Run Text="{lx:LocalizedValue {x:Static keys:ResourcesKeys.ScopeID}}" /><Run Text=":" />
                 <Run Text="{Binding ScopeId, Mode=OneWay}" />
             </TextBlock>
 
             <Button
                 Margin="5"
                 Command="{Binding SwitchLanguageCommand}"
-                Content="{lx:LocalizedValue ChangeLanguage}" />
+                Content="{lx:LocalizedValue {x:Static keys:ResourcesKeys.ChangeLanguage}}" />
 
             <Button
                 Margin="5"
@@ -39,20 +39,27 @@
                 FontWeight="Bold"
                 Text="LocalizedValue usage examples" />
 
-            <!--  1. Literal Key, targeting a DependencyProperty (TextBlock.Text).  -->
-            <TextBlock FontStyle="Italic" Text="1. Literal Key -&gt; DependencyProperty target:" />
-            <TextBlock Margin="0,0,0,10" Text="{lx:LocalizedValue HomePage_WelcomeMessage}" />
+            <!--
+                1. Generated key via x:Static, targeting a DependencyProperty (TextBlock.Text).
+                This project has two resx files (Resources\Resources.resx and Resources\Home.resx),
+                so every key names its resx: each generated constant holds a qualified key,
+                "<Assembly>/<ResourceBaseName>:<Key>". A bare literal like
+                {lx:LocalizedValue WelcomeMessage} would be ambiguous here (checker warning LOC004).
+            -->
+            <TextBlock FontStyle="Italic" Text="1. Generated key (Home.resx) -&gt; DependencyProperty target:" />
+            <TextBlock Margin="0,0,0,10" Text="{lx:LocalizedValue {x:Static keys:HomeKeys.WelcomeMessage}}" />
 
-            <!--  2. Literal Key, targeting a plain CLR property (Run.Text has no DependencyProperty).  -->
-            <TextBlock FontStyle="Italic" Text="2. Literal Key -&gt; plain CLR property target (Run.Text):" />
+            <!--  2. Generated key, targeting a plain CLR property (Run.Text has no DependencyProperty).  -->
+            <TextBlock FontStyle="Italic" Text="2. Generated key (Resources.resx) -&gt; plain CLR property target (Run.Text):" />
             <TextBlock Margin="0,0,0,10">
-                <Run Text="{lx:LocalizedValue ScopeID}" />
+                <Run Text="{lx:LocalizedValue {x:Static keys:ResourcesKeys.ScopeID}}" />
             </TextBlock>
 
             <!--
                 3. KeyBinding, sourcing the key dynamically from a bound view-model property
                 (instead of a fixed literal Key), so both the source key and culture changes
-                are reflected live.
+                are reflected live. The view model exposes generated constants, so each bound
+                value is already a qualified key and can come from either resx.
             -->
             <TextBlock FontStyle="Italic" Text="3. KeyBinding -&gt; key chosen from a ComboBox:" />
             <ComboBox
@@ -78,27 +85,28 @@
             </ItemsControl>
 
             <!--
-                5. KeyPrefix + KeyBinding: each row supplies only the short suffix ("Alpha",
-                "Beta", "Gamma"); KeyPrefix supplies the shared "Feature_" namespace once here
-                in XAML, so the resolved keys are the same Feature_Alpha/Beta/Gamma as above.
+                5. Source + KeyPrefix + KeyBinding: each row supplies only the short suffix
+                ("Alpha", "Beta", "Gamma"); KeyPrefix supplies the shared "Feature_" part once
+                here in XAML, and Source (the generated ResxSource constant) names the resx
+                those unqualified keys live in, so the resolved keys are the same
+                Feature_Alpha/Beta/Gamma as above.
             -->
-            <TextBlock FontStyle="Italic" Text="5. KeyPrefix + KeyBinding -&gt; shared prefix, per-item suffix:" />
+            <TextBlock FontStyle="Italic" Text="5. Source + KeyPrefix + KeyBinding -&gt; shared prefix, per-item suffix:" />
             <ItemsControl Margin="0,0,0,10" ItemsSource="{Binding FeatureSuffixes}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{lx:LocalizedValue KeyPrefix=Feature_, KeyBinding={Binding Key}}" />
+                        <TextBlock Text="{lx:LocalizedValue Source={x:Static keys:ResourcesKeys.ResxSource}, KeyPrefix=Feature_, KeyBinding={Binding Key}}" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
             <!--
-                6. Key via x:Static against Meteion.Toolkit.Localization.KeysGenerator's
-                generated ResourcesKeys class (see Resources\Resources.resx) instead of a raw
-                string literal - gets full member IntelliSense in the XAML editor, and a rename
-                or typo in the resx key becomes a compile error here instead of a silent runtime
-                miss. (Typing Key="..." as a literal also gets an IntelliSense dropdown of known
-                keys, via LocalizedValueExtension.Key's TypeConverter - this is the compile-time-
-                checked alternative to that.)
+                6. Named Key= via x:Static against Meteion.Toolkit.Localization.KeysGenerator's
+                generated ResourcesKeys class (see Resources\Resources.resx) - the same as the
+                positional form above. Gets full member IntelliSense in the XAML editor, and a
+                rename or typo in the resx key becomes a compile error here instead of a silent
+                runtime miss. (Typing Key="..." as a literal also gets an IntelliSense dropdown
+                of known qualified keys, via LocalizedValueExtension.Key's TypeConverter.)
             -->
             <TextBlock FontStyle="Italic" Text="6. Key via x:Static -&gt; generated ResourcesKeys class:" />
             <TextBlock Margin="0,0,0,10" Text="{lx:LocalizedValue Key={x:Static keys:ResourcesKeys.ScopeID}}" />

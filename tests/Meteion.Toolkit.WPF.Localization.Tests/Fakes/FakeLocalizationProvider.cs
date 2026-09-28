@@ -1,4 +1,4 @@
-using Meteion.Toolkit.Localization.Abstractions;
+﻿using Meteion.Toolkit.Localization.Abstractions;
 using System.Globalization;
 using System.Reflection;
 
@@ -14,12 +14,14 @@ public sealed class FakeLocalizationProvider : ILocalizationProvider
     public string? ValueToReturn { get; set; }
 
     public string? LastKey { get; private set; }
+    public LocalizationKey? LastLocalizationKey { get; private set; }
     public Assembly? LastAssembly { get; private set; }
     public CultureInfo? LastCulture { get; private set; }
 
-    public string? GetLocalizedString(string key, Assembly resourceAssembly, CultureInfo culture)
+    public string? GetLocalizedString(LocalizationKey key, Assembly resourceAssembly, CultureInfo culture)
     {
-        LastKey = key;
+        LastKey = key.ToString();
+        LastLocalizationKey = key;
         LastAssembly = resourceAssembly;
         LastCulture = culture;
         return ValueToReturn;

@@ -1,4 +1,5 @@
 ﻿using Meteion.Toolkit.Localization.Abstractions;
+using Meteion.Toolkit.WPF.Localization.Resolution;
 using Microsoft.Extensions.Options;
 using System.ComponentModel;
 using System.Globalization;
@@ -62,26 +63,59 @@ internal sealed class LocalizationService : ILocalizationService
     public event EventHandler<CultureChangedEventArgs>? CultureChanged;
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public string GetString(string key, Assembly? resourceAssembly = null)
+    public string GetString(string key)
     {
-        var assembly = resourceAssembly ?? _options.DefaultAssembly
-            ?? throw new LocalizationConfigurationException(
-                   $"Could not resolve a resource assembly for key '{key}': no assembly was specified and no LocalizationOptions.DefaultAssembly is configured.");
+        var parsed = LocalizationKey.Parse(key);
+        if (parsed.IsQualified)
+        {
+            return Lookup(parsed, ResourceAssemblyLocator.Find(parsed.AssemblyName!));
+        }
 
+        var assembly = _options.DefaultAssembly
+            ?? throw new LocalizationConfigurationException(
+                   $"Could not resolve a resource assembly for unqualified key '{key}': no assembly was specified and no LocalizationOptions.DefaultAssembly is configured.");
+
+        return Lookup(parsed, assembly);
+    }
+
+    public string GetString(string key, Assembly resourceAssembly)
+    {
+        ArgumentNullException.ThrowIfNull(resourceAssembly);
+
+        var parsed = LocalizationKey.Parse(key);
+        if (parsed.IsQualified && !ResourceAssemblyLocator.NameMatches(resourceAssembly, parsed.AssemblyName!))
+        {
+            throw new LocalizationConfigurationException(
+                $"Key '{key}' names assembly '{parsed.AssemblyName}', but assembly '{resourceAssembly.GetName().Name}' was specified.");
+        }
+
+        return Lookup(parsed, resourceAssembly);
+    }
+
+    public string GetString(string key, string source)
+    {
+        var parsed = LocalizationKey.FromSource(source, key);
+        return Lookup(parsed, ResourceAssemblyLocator.Find(parsed.AssemblyName!));
+    }
+
+    private string Lookup(LocalizationKey key, Assembly assembly)
+    {
         var value = _provider.GetLocalizedString(key, assembly, CurrentCulture);
         if (value is not null) return value;
+
+        var keyText = key.ToString();
 
         // Surface this the same way a genuinely failed {Binding} would, in Visual Studio's
         // XAML Binding Failures window — regardless of MissingKeyBehavior, since ReturnKey/
         // ReturnEmptyString would otherwise degrade with no signal that anything went wrong.
-        LocalizationTraceSource.TraceMissingKey(key, assembly, _options.MissingKeyBehavior);
+        LocalizationTraceSource.TraceMissingKey(keyText, assembly, _options.MissingKeyBehavior);
 
         return _options.MissingKeyBehavior switch
         {
-            MissingResourceBehavior.ReturnKey => key,
+            MissingResourceBehavior.ReturnKey => keyText,
             MissingResourceBehavior.ReturnEmptyString => string.Empty,
-            MissingResourceBehavior.ThrowException => throw new LocalizationKeyNotFoundException(key, assembly),
-            _ => key
+            MissingResourceBehavior.ThrowException => throw new LocalizationKeyNotFoundException(keyText, assembly),
+            _ => keyText
         };
     }
 }

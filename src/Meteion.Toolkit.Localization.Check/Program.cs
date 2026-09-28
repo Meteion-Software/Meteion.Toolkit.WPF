@@ -1,16 +1,74 @@
 using Meteion.Toolkit.Localization.Check;
 
-var positional = args.Where(a => !a.StartsWith('-')).ToArray();
-var rootPath = Path.GetFullPath(positional.Length > 0 ? positional[0] : Directory.GetCurrentDirectory());
-var strict = args.Contains("--strict");
+// Usage: meteion-loc-check [root] [--assembly-name <name>] [--root-namespace <ns>]
+//                          [--warnaserror] [--error <LOCxxx>]... [--no-orphans] [--no-xaml]
+string? rootArgument = null;
+string? assemblyName = null;
+string? rootNamespace = null;
+var warningsAsErrors = false;
+var errorCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+var checkOrphans = true;
+var checkXaml = true;
+
+for (var i = 0; i < args.Length; i++)
+{
+    string NextValue() => i + 1 < args.Length
+        ? args[++i]
+        : throw new ArgumentException($"Missing value for '{args[i]}'.");
+
+    switch (args[i])
+    {
+        case "--assembly-name": assemblyName = NextValue(); break;
+        case "--root-namespace": rootNamespace = NextValue(); break;
+        case "--warnaserror": warningsAsErrors = true; break;
+        case "--error":
+            // Accept "--error LOC003;LOC004" as well as repeated flags, since MSBuild item
+            // lists and properties are ';'-separated.
+            foreach (var code in NextValue().Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                errorCodes.Add(code);
+            }
+
+            break;
+        case "--no-orphans": checkOrphans = false; break;
+        case "--no-xaml": checkXaml = false; break;
+        default:
+            if (args[i].StartsWith('-'))
+            {
+                Console.Error.WriteLine($"meteion-loc-check: unknown option '{args[i]}'.");
+                return 2;
+            }
+
+            rootArgument ??= args[i];
+            break;
+    }
+}
+
+var rootPath = Path.GetFullPath(rootArgument ?? Directory.GetCurrentDirectory());
 
 var options = new LocalizationCheckOptions
 {
-    CheckOrphanKeys = !args.Contains("--no-orphans"),
-    CheckXamlUsages = !args.Contains("--no-xaml"),
+    CheckOrphanKeys = checkOrphans,
+    CheckXamlUsages = checkXaml,
+    AssemblyName = string.IsNullOrWhiteSpace(assemblyName) ? null : assemblyName,
+    RootNamespace = string.IsNullOrWhiteSpace(rootNamespace) ? null : rootNamespace,
 };
 
 var result = LocalizationKeyChecker.CheckDirectory(rootPath, options);
+var errorCount = 0;
+
+// MSBuild canonical format - Visual Studio's Error List and `dotnet build` both recognize
+// "<origin>: warning|error <code>: <text>" and surface it without any extra parsing.
+string Severity(string code)
+{
+    if (warningsAsErrors || errorCodes.Contains(code))
+    {
+        errorCount++;
+        return "error";
+    }
+
+    return "warning";
+}
 
 foreach (var issue in result.ResourceIssues)
 {
@@ -18,21 +76,37 @@ foreach (var issue in result.ResourceIssues)
     var message = issue.Kind == LocalizationKeyIssueKind.MissingKey
         ? $"Key '{issue.Key}' is defined in '{neutralFileName}' but is missing from the '{issue.CultureName}' locale."
         : $"Key '{issue.Key}' exists in the '{issue.CultureName}' locale but is not defined in '{neutralFileName}' (possible typo or leftover key).";
-    var code = issue.Kind == LocalizationKeyIssueKind.MissingKey ? "LOC001" : "LOC002";
 
-    // MSBuild canonical format - Visual Studio's Error List and `dotnet build` both
-    // recognize this and surface it as a warning without any extra parsing.
-    Console.WriteLine($"{issue.LocaleResourcePath}: warning {code}: {message}");
+    Console.WriteLine($"{issue.LocaleResourcePath}: {Severity(issue.Code)} {issue.Code}: {message}");
 }
 
 foreach (var usage in result.UsageIssues)
 {
-    Console.WriteLine(
-        $"{usage.XamlFilePath}({usage.LineNumber}): warning LOC003: Key '{usage.Key}' is used here but is not defined in any scanned .resx file and will throw or fail to resolve at runtime.");
+    var message = usage.Kind switch
+    {
+        LocalizationKeyUsageIssueKind.UndefinedKey =>
+            $"Key '{usage.Key}' is used here but is not defined in the .resx it resolves to and will throw or fail to resolve at runtime.",
+        LocalizationKeyUsageIssueKind.AmbiguousUnqualifiedKey =>
+            $"Unqualified key '{usage.Key}' is ambiguous because this project has more than one .resx file. Use a generated key ({{x:Static ...Keys.Key}}) or set Source.",
+        LocalizationKeyUsageIssueKind.QualifiedKeyWithPrefix =>
+            $"Qualified key '{usage.Key}' can't be combined with KeyPrefix. Use Source with an unqualified key instead.",
+        LocalizationKeyUsageIssueKind.UnknownSource =>
+            $"Source '{usage.Key}' does not name a .resx file in this project.",
+        LocalizationKeyUsageIssueKind.UnverifiableCrossAssemblyKey =>
+            $"'{usage.Key}' refers to another assembly, so it can't be checked from this project.",
+        LocalizationKeyUsageIssueKind.SourceWithAssembly =>
+            $"Source '{usage.Key}' can't be combined with Assembly, since Source already names its assembly. Remove Assembly.",
+        _ => $"Problem with key '{usage.Key}'.",
+    };
+
+    // Informational notes are never promoted - there's nothing wrong to fail on.
+    var severity = usage.IsInformational ? "info" : Severity(usage.Code);
+    Console.WriteLine($"{usage.XamlFilePath}({usage.LineNumber}): {severity} {usage.Code}: {message}");
 }
 
 var missingKeyCount = result.ResourceIssues.Count(i => i.Kind == LocalizationKeyIssueKind.MissingKey);
 var orphanKeyCount = result.ResourceIssues.Count(i => i.Kind == LocalizationKeyIssueKind.OrphanKey);
+var usageIssueCount = result.UsageIssues.Count(i => !i.IsInformational);
 
 if (result.IsClean)
 {
@@ -41,8 +115,7 @@ if (result.IsClean)
 else
 {
     Console.WriteLine(
-        $"meteion-loc-check: {missingKeyCount} missing, {orphanKeyCount} orphaned, {result.UsageIssues.Count} undefined-usage issue(s) found under '{rootPath}'.");
+        $"meteion-loc-check: {missingKeyCount} missing, {orphanKeyCount} orphaned, {usageIssueCount} XAML usage issue(s) found under '{rootPath}'.");
 }
 
-var hasBlockingIssues = missingKeyCount > 0 || result.UsageIssues.Count > 0;
-return strict && hasBlockingIssues ? 1 : 0;
+return errorCount > 0 ? 1 : 0;

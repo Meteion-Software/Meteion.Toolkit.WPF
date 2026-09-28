@@ -13,4 +13,6 @@ internal static class LocalizationServiceLocator
     public static Func<IServiceProvider> ServiceProviderAccessor { get; set; } = () => ((WpfGenericHostApplication)Application.Current).Host.Services;
 
     public static T Resolve<T>() where T : notnull => ServiceProviderAccessor().GetRequiredService<T>();
+
+    public static T? TryResolve<T>() where T : class => ServiceProviderAccessor().GetService<T>();
 }

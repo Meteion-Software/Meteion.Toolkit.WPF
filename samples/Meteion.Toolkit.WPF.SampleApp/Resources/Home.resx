@@ -117,19 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="ChangeLanguage" xml:space="preserve">
-    <value>Change Language</value>
-  </data>
-  <data name="ScopeID" xml:space="preserve">
-    <value>Scope ID</value>
-  </data>
-  <data name="Feature_Alpha" xml:space="preserve">
-    <value>Alpha Feature</value>
-  </data>
-  <data name="Feature_Beta" xml:space="preserve">
-    <value>Beta Feature</value>
-  </data>
-  <data name="Feature_Gamma" xml:space="preserve">
-    <value>Gamma Feature</value>
+  <data name="WelcomeMessage" xml:space="preserve">
+    <value>Welcome to the home page!</value>
   </data>
 </root>

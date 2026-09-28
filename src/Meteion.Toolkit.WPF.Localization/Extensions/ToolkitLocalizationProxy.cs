@@ -11,20 +11,23 @@ namespace Meteion.Toolkit.WPF.Localization.Extensions;
 /// </summary>
 internal sealed class ToolkitLocalizationProxy : INotifyPropertyChanged
 {
-    private readonly ILocalizationService _service;
+    private readonly LocalizationRequest _request;
     private readonly string _key;
-    private readonly Assembly _assembly;
 
     public ToolkitLocalizationProxy(ILocalizationService localizationService, string key, Assembly assembly)
+        : this(new LocalizationRequest(localizationService, assembly), key)
     {
-        _service = localizationService;
-        _key = key;
-        _assembly = assembly;
+    }
 
-        Value = _service.GetString(_key, _assembly);
+    public ToolkitLocalizationProxy(LocalizationRequest request, string key)
+    {
+        _request = request;
+        _key = key;
+
+        Value = _request.Resolve(_key);
 
         WeakEventManager<ILocalizationService, CultureChangedEventArgs>.AddHandler(
-            _service, nameof(ILocalizationService.CultureChanged), OnCultureChanged);
+            _request.Service, nameof(ILocalizationService.CultureChanged), OnCultureChanged);
     }
 
     public string Value { get; set; }
@@ -33,7 +36,7 @@ internal sealed class ToolkitLocalizationProxy : INotifyPropertyChanged
 
     private void OnCultureChanged(object? sender, CultureChangedEventArgs culture)
     {
-        Value = _service.GetString(_key, _assembly);
+        Value = _request.Resolve(_key);
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
     }
 }

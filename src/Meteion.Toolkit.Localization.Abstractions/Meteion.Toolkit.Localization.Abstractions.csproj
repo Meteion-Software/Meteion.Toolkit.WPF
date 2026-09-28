@@ -1,7 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Key/source parsing shared with KeysGenerator and Check.Core - see ResxNaming. -->
+    <Compile Include="..\Shared\ResxNaming.cs" Link="Shared\ResxNaming.cs" />
+  </ItemGroup>
 
 </Project>

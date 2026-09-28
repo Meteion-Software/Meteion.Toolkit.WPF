@@ -1,4 +1,4 @@
-using Meteion.Toolkit.Localization.Abstractions;
+﻿using Meteion.Toolkit.Localization.Abstractions;
 using Meteion.Toolkit.WPF.Localization.Extensions;
 using Meteion.Toolkit.WPF.Localization.Tests.Fakes;
 using System.ComponentModel;
@@ -26,12 +26,17 @@ public class LocalizedValueExtensionTests
 {
     private static readonly Assembly SomeAssembly = typeof(LocalizedValueExtensionTests).Assembly;
 
-    private static IDisposable UseFakeLocator(ILocalizationService service, IResourceAssemblyResolver resolver)
+    private static IDisposable UseFakeLocator(ILocalizationService service, IResourceAssemblyResolver resolver, LocalizationOptions? options = null)
     {
         var original = LocalizationServiceLocator.ServiceProviderAccessor;
         var fakeProvider = new FakeServiceProvider()
             .Add<ILocalizationService>(service)
             .Add<IResourceAssemblyResolver>(resolver);
+        if (options is not null)
+        {
+            fakeProvider.Add<Microsoft.Extensions.Options.IOptions<LocalizationOptions>>(Microsoft.Extensions.Options.Options.Create(options));
+        }
+
         LocalizationServiceLocator.ServiceProviderAccessor = () => fakeProvider;
         return new RestoreAccessor(original);
     }
@@ -379,6 +384,166 @@ public class LocalizedValueExtensionTests
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
+    }
+
+    private static readonly string SomeSource = $"{SomeAssembly.GetName().Name}/Some.Strings";
+
+    [Fact]
+    public void ProvideValue_QualifiedKey_ResolvesWithoutAssembly()
+    {
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        using (UseFakeLocator(service, new FakeResourceAssemblyResolver(SomeAssembly)))
+        {
+            var extension = new LocalizedValueExtension { Key = $"{SomeSource}:Greeting" };
+
+            var result = extension.ProvideValue(new FakeProvideValueServiceProvider());
+
+            Assert.Equal("Hello", result);
+            Assert.Equal($"{SomeSource}:Greeting", service.LastRequestedKey);
+            Assert.Null(service.LastRequestedAssembly);
+            Assert.Null(service.LastRequestedSource);
+        }
+    }
+
+    [Fact]
+    public void ProvideValue_UnqualifiedKeyWithSource_ResolvesFromSourceWithPrefix()
+    {
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        using (UseFakeLocator(service, new FakeResourceAssemblyResolver(SomeAssembly)))
+        {
+            var extension = new LocalizedValueExtension { Key = "Info", KeyPrefix = "Notification_", Source = SomeSource };
+
+            extension.ProvideValue(new FakeProvideValueServiceProvider());
+
+            Assert.Equal("Notification_Info", service.LastRequestedKey);
+            Assert.Equal(SomeSource, service.LastRequestedSource);
+        }
+    }
+
+    [Fact]
+    public void ProvideValue_QualifiedKeyWithMatchingSource_Resolves()
+    {
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        using (UseFakeLocator(service, new FakeResourceAssemblyResolver(SomeAssembly)))
+        {
+            var extension = new LocalizedValueExtension { Key = $"{SomeSource}:Greeting", Source = SomeSource };
+
+            Assert.Equal("Hello", extension.ProvideValue(new FakeProvideValueServiceProvider()));
+        }
+    }
+
+    public static TheoryData<LocalizedValueExtension> InvalidCombinations => new()
+    {
+        // Source already names its assembly.
+        new LocalizedValueExtension { Key = "Greeting", Source = SomeSource, Assembly = SomeAssembly },
+        // A qualified key can't take a prefix.
+        new LocalizedValueExtension { Key = $"{SomeSource}:Greeting", KeyPrefix = "Notification_" },
+        // Qualified key disagreeing with Source...
+        new LocalizedValueExtension { Key = $"{SomeSource}:Greeting", Source = $"{SomeAssembly.GetName().Name}/Other.Strings" },
+        // ...or with an explicit Assembly.
+        new LocalizedValueExtension { Key = $"{SomeSource}:Greeting", Assembly = typeof(object).Assembly },
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidCombinations))]
+    public void ProvideValue_InvalidCombination_ThrowsLocalizationConfigurationException(LocalizedValueExtension extension)
+    {
+        using (UseFakeLocator(new FakeLocalizationService(), new FakeResourceAssemblyResolver(SomeAssembly)))
+        {
+            Assert.Throws<LocalizationConfigurationException>(() => extension.ProvideValue(new FakeProvideValueServiceProvider()));
+        }
+    }
+
+    // A bound value that breaks the rules (here: a qualified key combined with KeyPrefix) is
+    // handled per MissingKeyBehavior, on both KeyBinding paths.
+    [StaTheory]
+    [InlineData(MissingResourceBehavior.ReturnKey, "{0}:Greeting")]
+    [InlineData(MissingResourceBehavior.ReturnEmptyString, "")]
+    public void ProvideValue_KeyBindingProducesInvalidKey_FollowsMissingKeyBehavior(MissingResourceBehavior behavior, string expectedFormat)
+    {
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        using (UseFakeLocator(service, new FakeResourceAssemblyResolver(SomeAssembly), new LocalizationOptions { MissingKeyBehavior = behavior }))
+        {
+            var source = new KeySource { TitleKey = $"{SomeSource}:Greeting" };
+            var textBlock = new TextBlock { DataContext = source };
+            var provider = new FakeProvideValueServiceProvider()
+                .WithProvideValueTarget(textBlock, TextBlock.TextProperty);
+            var extension = new LocalizedValueExtension
+            {
+                KeyBinding = new Binding(nameof(KeySource.TitleKey)),
+                KeyPrefix = "Notification_",
+            };
+
+            extension.ProvideValue(provider);
+
+            Assert.Equal(string.Format(expectedFormat, SomeSource), textBlock.Text);
+            Assert.Equal(0, service.GetStringCallCount);
+        }
+    }
+
+    [StaFact]
+    public void ProvideValue_KeyBindingProducesInvalidKey_ThrowException_Throws()
+    {
+        var service = new FakeLocalizationService { ValueToReturn = "Hello" };
+        var options = new LocalizationOptions { MissingKeyBehavior = MissingResourceBehavior.ThrowException };
+        using (UseFakeLocator(service, new FakeResourceAssemblyResolver(SomeAssembly), options))
+        {
+            var source = new KeySource { TitleKey = $"{SomeSource}:Greeting" };
+            var textBlock = new TextBlock { DataContext = source };
+            var provider = new FakeProvideValueServiceProvider()
+                .WithProvideValueTarget(textBlock, TextBlock.TextProperty);
+            var extension = new LocalizedValueExtension
+            {
+                KeyBinding = new Binding(nameof(KeySource.TitleKey)),
+                KeyPrefix = "Notification_",
+            };
+
+            Assert.Throws<LocalizationConfigurationException>(() => extension.ProvideValue(provider));
+        }
+    }
+
+    [StaFact]
+    public void ProvideValue_NoOptionsRegistered_DefaultsToThrowException()
+    {
+        using (UseFakeLocator(new FakeLocalizationService(), new FakeResourceAssemblyResolver(SomeAssembly)))
+        {
+            var source = new KeySource { TitleKey = $"{SomeSource}:Greeting" };
+            var textBlock = new TextBlock { DataContext = source };
+            var provider = new FakeProvideValueServiceProvider()
+                .WithProvideValueTarget(textBlock, TextBlock.TextProperty);
+            var extension = new LocalizedValueExtension
+            {
+                KeyBinding = new Binding(nameof(KeySource.TitleKey)),
+                KeyPrefix = "Notification_",
+            };
+
+            Assert.Throws<LocalizationConfigurationException>(() => extension.ProvideValue(provider));
+        }
+    }
+
+    // The in-template path: ProvideValue returns a MultiBinding whose converter does the lookup.
+    [Theory]
+    [InlineData(MissingResourceBehavior.ReturnKey, "Asm/Asm.Strings:Greeting")]
+    [InlineData(MissingResourceBehavior.ReturnEmptyString, "")]
+    public void DynamicKeyLocalizationConverter_InvalidKey_FollowsMissingKeyBehavior(MissingResourceBehavior behavior, string expected)
+    {
+        var request = new LocalizationRequest(new FakeLocalizationService(), SomeAssembly, keyPrefix: "Notification_", missingKeyBehavior: behavior);
+        var converter = new DynamicKeyLocalizationConverter(request);
+
+        var result = converter.Convert(["Asm/Asm.Strings:Greeting", 0], typeof(string), null, CultureInfo.InvariantCulture);
+
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void DynamicKeyLocalizationConverter_InvalidKey_ThrowException_Throws()
+    {
+        var request = new LocalizationRequest(new FakeLocalizationService(), SomeAssembly, keyPrefix: "Notification_",
+            missingKeyBehavior: MissingResourceBehavior.ThrowException);
+        var converter = new DynamicKeyLocalizationConverter(request);
+
+        Assert.Throws<LocalizationConfigurationException>(
+            () => converter.Convert(["Asm/Asm.Strings:Greeting", 0], typeof(string), null, CultureInfo.InvariantCulture));
     }
 
     private sealed class RestoreAccessor(Func<IServiceProvider> original) : IDisposable

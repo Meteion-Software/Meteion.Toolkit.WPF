@@ -1,4 +1,4 @@
-using Meteion.Toolkit.Localization.Abstractions;
+﻿using Meteion.Toolkit.Localization.Abstractions;
 using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
@@ -18,20 +18,21 @@ namespace Meteion.Toolkit.WPF.Localization.Extensions;
 /// </remarks>
 internal sealed class DynamicToolkitLocalizationProxy : DependencyObject, INotifyPropertyChanged
 {
-    private readonly ILocalizationService _service;
-    private readonly Assembly _assembly;
-    private readonly string? _keyPrefix;
+    private readonly LocalizationRequest _request;
     private string? _key;
 
     public DynamicToolkitLocalizationProxy(ILocalizationService service, Assembly assembly, string? keyPrefix = null)
+        : this(new LocalizationRequest(service, assembly, keyPrefix: keyPrefix))
     {
-        _service = service;
-        _assembly = assembly;
-        _keyPrefix = keyPrefix;
+    }
+
+    public DynamicToolkitLocalizationProxy(LocalizationRequest request)
+    {
+        _request = request;
         Value = Resolve();
 
         WeakEventManager<ILocalizationService, CultureChangedEventArgs>.AddHandler(
-            _service, nameof(ILocalizationService.CultureChanged), OnCultureChanged);
+            _request.Service, nameof(ILocalizationService.CultureChanged), OnCultureChanged);
     }
 
     /// <summary>
@@ -65,5 +66,5 @@ internal sealed class DynamicToolkitLocalizationProxy : DependencyObject, INotif
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
     }
 
-    private string Resolve() => _key == null ? string.Empty : _service.GetString(_keyPrefix + _key, _assembly);
+    private string Resolve() => _key == null ? string.Empty : _request.ResolveForBinding(_key);
 }

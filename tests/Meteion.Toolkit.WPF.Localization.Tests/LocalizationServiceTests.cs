@@ -1,4 +1,4 @@
-using Meteion.Toolkit.Localization.Abstractions;
+﻿using Meteion.Toolkit.Localization.Abstractions;
 using Meteion.Toolkit.WPF.Localization.Tests.Fakes;
 using Microsoft.Extensions.Options;
 using System.ComponentModel;
@@ -63,6 +63,71 @@ public class LocalizationServiceTests
         var service = CreateService(new FakeLocalizationProvider());
 
         Assert.Throws<LocalizationConfigurationException>(() => service.GetString("Greeting"));
+    }
+
+    private static string QualifiedKey(string key) => $"{SomeAssembly.GetName().Name}/Some.Strings:{key}";
+
+    [Fact]
+    public void GetString_QualifiedKey_ResolvesNamedAssemblyAndBaseName()
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "Hello" };
+        var service = CreateService(provider);
+
+        var result = service.GetString(QualifiedKey("Greeting"));
+
+        Assert.Equal("Hello", result);
+        Assert.Same(SomeAssembly, provider.LastAssembly);
+        Assert.Equal("Some.Strings", provider.LastLocalizationKey?.BaseName);
+        Assert.Equal("Greeting", provider.LastLocalizationKey?.Key);
+    }
+
+    [Fact]
+    public void GetString_QualifiedKeyWithMatchingAssembly_Resolves()
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "Hello" };
+        var service = CreateService(provider);
+
+        Assert.Equal("Hello", service.GetString(QualifiedKey("Greeting"), SomeAssembly));
+    }
+
+    [Fact]
+    public void GetString_QualifiedKeyWithDifferentAssembly_ThrowsLocalizationConfigurationException()
+    {
+        var service = CreateService(new FakeLocalizationProvider());
+
+        Assert.Throws<LocalizationConfigurationException>(
+            () => service.GetString(QualifiedKey("Greeting"), typeof(object).Assembly));
+    }
+
+    [Fact]
+    public void GetString_Source_QualifiesUnqualifiedKey()
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "Hello" };
+        var service = CreateService(provider);
+
+        service.GetString("Greeting", $"{SomeAssembly.GetName().Name}/Some.Strings");
+
+        Assert.Equal(QualifiedKey("Greeting"), provider.LastKey);
+        Assert.Same(SomeAssembly, provider.LastAssembly);
+    }
+
+    [Theory]
+    [InlineData("NotASource")]
+    [InlineData("Asm/Base:Key")]
+    public void GetString_InvalidSource_ThrowsLocalizationConfigurationException(string source)
+    {
+        var service = CreateService(new FakeLocalizationProvider());
+
+        Assert.Throws<LocalizationConfigurationException>(() => service.GetString("Greeting", source));
+    }
+
+    [Fact]
+    public void GetString_SourceWithQualifiedKey_ThrowsLocalizationConfigurationException()
+    {
+        var service = CreateService(new FakeLocalizationProvider());
+
+        Assert.Throws<LocalizationConfigurationException>(
+            () => service.GetString(QualifiedKey("Greeting"), $"{SomeAssembly.GetName().Name}/Some.Strings"));
     }
 
     [Fact]

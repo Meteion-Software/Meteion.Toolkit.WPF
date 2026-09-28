@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
@@ -15,6 +15,12 @@ namespace Meteion.Toolkit.Localization.KeysGenerator;
 /// <c>LocalizedValueExtension</c> resource keys.
 /// </summary>
 /// <remarks>
+/// Each constant's value is the qualified key <c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;:&lt;Key&gt;</c>
+/// (see <c>LocalizationKey</c>), so it resolves from the right assembly and resx no matter
+/// where it's used. Each class also gets a <c>ResxSource</c> constant -
+/// <c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;</c> - for <c>LocalizedValue.Source</c>.
+/// </remarks>
+/// <remarks>
 /// Deliberately keyed off a project's <c>AdditionalFiles</c> (not <c>EmbeddedResource</c>) -
 /// analyzers/generators can only see the former. The shipped
 /// <c>build\Meteion.Toolkit.Localization.KeysGenerator.props</c> adds every <c>*.resx</c> as
@@ -30,11 +36,20 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
     private const string GeneratedLocalizationKeysAttributeFullName =
         "Meteion.Toolkit.Localization.Abstractions.GeneratedLocalizationKeysAttribute";
 
+    internal static readonly DiagnosticDescriptor ResxSourceKeyCollision = new(
+        id: "MTKGEN001",
+        title: "Resx key collides with the generated ResxSource constant",
+        messageFormat: "Resx key 'ResxSource' in '{0}' collides with the generated ResxSource constant; its key constant is generated as '{1}' instead",
+        category: "Meteion.Toolkit.Localization",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var hasMarkerAttribute = context.CompilationProvider
-            .Select(static (compilation, _) =>
-                compilation.GetTypeByMetadataName(GeneratedLocalizationKeysAttributeFullName) is not null);
+        var compilationInfo = context.CompilationProvider
+            .Select(static (compilation, _) => (
+                AssemblyName: compilation.AssemblyName ?? string.Empty,
+                HasMarkerAttribute: compilation.GetTypeByMetadataName(GeneratedLocalizationKeysAttributeFullName) is not null));
 
         var resxFiles = context.AdditionalTextsProvider
             .Where(static text => text.Path.EndsWith(".resx", StringComparison.OrdinalIgnoreCase));
@@ -49,27 +64,34 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
 
         var generatedFiles = perFileOptions
             .Combine(rootNamespace)
-            .Combine(hasMarkerAttribute)
+            .Combine(compilationInfo)
             .Select(static (combined, ct) =>
             {
-                var (((text, optionsProvider), defaultRootNamespace), includeMarkerAttribute) = combined;
-                return TryCreateGeneratedFile(text, optionsProvider.GetOptions(text), defaultRootNamespace, includeMarkerAttribute, ct);
+                var (((text, optionsProvider), defaultRootNamespace), (assemblyName, includeMarkerAttribute)) = combined;
+                return TryCreateGeneratedFile(text, optionsProvider.GetOptions(text), defaultRootNamespace, assemblyName, includeMarkerAttribute, ct);
             })
             .Where(static file => file is not null);
 
         context.RegisterSourceOutput(generatedFiles, static (spc, file) =>
-            spc.AddSource(file!.HintName, file.Source));
+        {
+            spc.AddSource(file!.HintName, file.Source);
+            foreach (var diagnostic in file.Diagnostics)
+            {
+                spc.ReportDiagnostic(diagnostic);
+            }
+        });
     }
 
     private static GeneratedFile? TryCreateGeneratedFile(
         AdditionalText text,
         AnalyzerConfigOptions fileOptions,
         string? defaultRootNamespace,
+        string assemblyName,
         bool includeMarkerAttribute,
         CancellationToken cancellationToken)
     {
         var fileName = Path.GetFileNameWithoutExtension(text.Path);
-        if (HasCultureSuffix(fileName))
+        if (ResxNaming.SplitCultureSuffix(fileName).Culture is not null)
         {
             // A satellite translation, e.g. "Resources.ja-JP" - only the neutral resx defines
             // the key set.
@@ -87,41 +109,33 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
 
         fileOptions.TryGetValue("build_metadata.AdditionalFiles.MeteionKeysClassName", out var classNameOverride);
         fileOptions.TryGetValue("build_metadata.AdditionalFiles.MeteionKeysNamespace", out var namespaceOverride);
+        fileOptions.TryGetValue("build_metadata.AdditionalFiles.MeteionResourceBaseName", out var baseNameOverride);
 
-        var className = !string.IsNullOrWhiteSpace(classNameOverride)
-            ? classNameOverride!
-            : SanitizeIdentifier(fileName) + "Keys";
-
-        var @namespace = !string.IsNullOrWhiteSpace(namespaceOverride)
-            ? namespaceOverride!
-            : BuildDefaultNamespace(defaultRootNamespace, fileOptions);
-
-        var source = GenerateSource(@namespace, className, text.Path, entries, includeMarkerAttribute);
-        var hintName = SanitizeHintName($"{(@namespace is null ? "" : @namespace + ".")}{className}") + ".g.cs";
-
-        return new GeneratedFile(hintName, SourceText.From(source, Encoding.UTF8));
-    }
-
-    private static string? BuildDefaultNamespace(string? rootNamespace, AnalyzerConfigOptions fileOptions)
-    {
         // "RelativeDir" is well-known MSBuild item metadata - the item's directory, relative
         // to the project, with a trailing separator (e.g. "Resources\" or "" for the project
         // root) - computed automatically for every item, no extra setup needed.
         fileOptions.TryGetValue("build_metadata.AdditionalFiles.RelativeDir", out var relativeDir);
 
-        IEnumerable<string> segments = string.IsNullOrEmpty(relativeDir)
-            ? Array.Empty<string>()
-            : relativeDir!.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries).Select(SanitizeIdentifier);
+        var className = !string.IsNullOrWhiteSpace(classNameOverride)
+            ? classNameOverride!
+            : ResxNaming.DefaultClassName(fileName);
 
-        var parts = string.IsNullOrWhiteSpace(rootNamespace)
-            ? segments
-            : new[] { rootNamespace! }.Concat(segments);
+        var @namespace = !string.IsNullOrWhiteSpace(namespaceOverride)
+            ? namespaceOverride!
+            : ResxNaming.DefaultNamespace(defaultRootNamespace, relativeDir);
 
-        var @namespace = string.Join(".", parts);
-        return string.IsNullOrEmpty(@namespace) ? null : @namespace;
+        var baseName = !string.IsNullOrWhiteSpace(baseNameOverride)
+            ? baseNameOverride!
+            : ResxNaming.DefaultBaseName(defaultRootNamespace, relativeDir, fileName);
+
+        var diagnostics = new List<Diagnostic>();
+        var source = GenerateSource(@namespace, className, text.Path, assemblyName, baseName, entries, includeMarkerAttribute, diagnostics);
+        var hintName = SanitizeHintName($"{(@namespace is null ? "" : @namespace + ".")}{className}") + ".g.cs";
+
+        return new GeneratedFile(hintName, SourceText.From(source, Encoding.UTF8), diagnostics);
     }
 
-    private static List<(string Name, string Value)>? ReadStringEntries(AdditionalText text, CancellationToken cancellationToken)
+    private static List<(string Name, string Value, int Line)>? ReadStringEntries(AdditionalText text, CancellationToken cancellationToken)
     {
         var sourceText = text.GetText(cancellationToken);
         if (sourceText is null)
@@ -132,7 +146,7 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         XDocument document;
         try
         {
-            document = XDocument.Parse(sourceText.ToString());
+            document = XDocument.Parse(sourceText.ToString(), LoadOptions.SetLineInfo);
         }
         catch (System.Xml.XmlException)
         {
@@ -144,7 +158,7 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
             return null;
         }
 
-        var entries = new List<(string Name, string Value)>();
+        var entries = new List<(string Name, string Value, int Line)>();
         var seenNames = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var data in document.Root.Elements("data"))
@@ -165,7 +179,7 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
             }
 
             var value = data.Element("value")?.Value ?? string.Empty;
-            entries.Add((name!, value));
+            entries.Add((name!, value, ((System.Xml.IXmlLineInfo)data).LineNumber));
         }
 
         return entries;
@@ -175,9 +189,14 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         string? @namespace,
         string className,
         string resxPath,
-        List<(string Name, string Value)> entries,
-        bool includeMarkerAttribute)
+        string assemblyName,
+        string baseName,
+        List<(string Name, string Value, int Line)> entries,
+        bool includeMarkerAttribute,
+        List<Diagnostic> diagnostics)
     {
+        var resxSource = ResxNaming.Source(assemblyName, baseName);
+
         var builder = new StringBuilder();
         builder.AppendLine("// <auto-generated>");
         builder.AppendLine("// Generated by Meteion.Toolkit.Localization.KeysGenerator from:");
@@ -196,29 +215,45 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         }
 
         builder.AppendLine($"{indent}/// <summary>");
-        builder.AppendLine($"{indent}/// Resource key names generated from <c>{XmlEscape(Path.GetFileName(resxPath))}</c>. Each field's");
-        builder.AppendLine($"{indent}/// value is the key itself (for use with <c>LocalizedValueExtension.Key</c> et al.) -");
+        builder.AppendLine($"{indent}/// Resource keys generated from <c>{XmlEscape(Path.GetFileName(resxPath))}</c>. Each field's");
+        builder.AppendLine($"{indent}/// value is the qualified key (for use with <c>LocalizedValueExtension.Key</c> et al.) -");
         builder.AppendLine($"{indent}/// see the field's own doc comment for the neutral-culture resx value.");
         builder.AppendLine($"{indent}/// </summary>");
         builder.AppendLine($"{indent}[global::System.CodeDom.Compiler.GeneratedCode(\"Meteion.Toolkit.Localization.KeysGenerator\", null)]");
 
         if (includeMarkerAttribute)
         {
-            builder.AppendLine($"{indent}[global::{GeneratedLocalizationKeysAttributeFullName}({QuoteLiteral(resxPath)})]");
+            builder.AppendLine($"{indent}[global::{GeneratedLocalizationKeysAttributeFullName}({QuoteLiteral(resxPath)}, ResxSource = {QuoteLiteral(resxSource)})]");
         }
 
         builder.AppendLine($"{indent}public static partial class {className}");
         builder.AppendLine($"{indent}{{");
 
-        var usedIdentifiers = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var (name, value) in entries)
+        builder.AppendLine($"{indent}    /// <summary>");
+        builder.AppendLine($"{indent}    /// Identifies this resx (<c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;</c>) - for <c>LocalizedValueExtension.Source</c>.");
+        builder.AppendLine($"{indent}    /// </summary>");
+        builder.AppendLine($"{indent}    public const string {ResxNaming.ResxSourceFieldName} = {QuoteLiteral(resxSource)};");
+        builder.AppendLine();
+
+        var identifiers = ResxNaming.AssignIdentifiers(entries.Select(e => e.Name));
+        for (var i = 0; i < entries.Count; i++)
         {
-            var identifier = MakeUniqueIdentifier(name, usedIdentifiers);
+            var (name, value, line) = entries[i];
+            var identifier = identifiers[i];
+            if (name == ResxNaming.ResxSourceFieldName)
+            {
+                var position = new LinePosition(Math.Max(line - 1, 0), 0);
+                diagnostics.Add(Diagnostic.Create(
+                    ResxSourceKeyCollision,
+                    Location.Create(resxPath, default, new LinePositionSpan(position, position)),
+                    Path.GetFileName(resxPath),
+                    identifier));
+            }
 
             builder.AppendLine($"{indent}    /// <summary>");
             AppendValueDoc(builder, indent, value);
             builder.AppendLine($"{indent}    /// </summary>");
-            builder.AppendLine($"{indent}    public const string {identifier} = {QuoteLiteral(name)};");
+            builder.AppendLine($"{indent}    public const string {identifier} = {QuoteLiteral(ResxNaming.QualifiedKey(assemblyName, baseName, name))};");
             builder.AppendLine();
         }
 
@@ -258,55 +293,6 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         builder.AppendLine($"{indent}    /// </c>");
     }
 
-    private static string MakeUniqueIdentifier(string name, HashSet<string> usedIdentifiers)
-    {
-        var identifier = SanitizeIdentifier(name);
-
-        if (usedIdentifiers.Add(identifier))
-        {
-            return identifier;
-        }
-
-        // Two resx key names that sanitize to the same identifier (e.g. "My.Key" and
-        // "My_Key") - keep both, deterministically, rather than dropping one silently.
-        var suffix = 2;
-        string candidate;
-        do
-        {
-            candidate = identifier + "_" + suffix.ToString(CultureInfo.InvariantCulture);
-            suffix++;
-        } while (!usedIdentifiers.Add(candidate));
-
-        return candidate;
-    }
-
-    /// <summary>
-    /// Converts an arbitrary resx key name (or path segment) into a valid C# identifier -
-    /// invalid characters become <c>_</c>, a leading digit gets a <c>_</c> prefix, and a
-    /// reserved keyword gets an <c>@</c> prefix.
-    /// </summary>
-    private static string SanitizeIdentifier(string name)
-    {
-        if (string.IsNullOrEmpty(name))
-        {
-            return "_";
-        }
-
-        var builder = new StringBuilder(name.Length);
-        foreach (var c in name)
-        {
-            builder.Append(char.IsLetterOrDigit(c) || c == '_' ? c : '_');
-        }
-
-        if (char.IsDigit(builder[0]))
-        {
-            builder.Insert(0, '_');
-        }
-
-        var identifier = builder.ToString();
-        return CSharpKeywords.Contains(identifier) ? "@" + identifier : identifier;
-    }
-
     private static string SanitizeHintName(string name)
     {
         var builder = new StringBuilder(name.Length);
@@ -318,48 +304,15 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         return builder.ToString();
     }
 
-    private static bool HasCultureSuffix(string fileNameWithoutExtension)
-    {
-        var lastDot = fileNameWithoutExtension.LastIndexOf('.');
-        if (lastDot < 0)
-        {
-            return false;
-        }
-
-        var candidate = fileNameWithoutExtension.Substring(lastDot + 1);
-
-        try
-        {
-            var culture = CultureInfo.GetCultureInfo(candidate);
-            return !string.IsNullOrEmpty(culture.Name);
-        }
-        catch (CultureNotFoundException)
-        {
-            return false;
-        }
-    }
-
     private static string QuoteLiteral(string value) =>
         Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
     private static string XmlEscape(string value) => new XText(value).ToString();
 
-    private static readonly HashSet<string> CSharpKeywords =
-    [
-        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
-        "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else",
-        "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for",
-        "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
-        "long", "namespace", "new", "null", "object", "operator", "out", "override", "params",
-        "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
-        "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this",
-        "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort",
-        "using", "virtual", "void", "volatile", "while",
-    ];
-
-    private sealed class GeneratedFile(string hintName, SourceText source)
+    private sealed class GeneratedFile(string hintName, SourceText source, IReadOnlyList<Diagnostic> diagnostics)
     {
         public string HintName { get; } = hintName;
         public SourceText Source { get; } = source;
+        public IReadOnlyList<Diagnostic> Diagnostics { get; } = diagnostics;
     }
 }

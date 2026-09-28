@@ -17,11 +17,28 @@ namespace Meteion.Toolkit.WPF.Localization;
 /// </summary>
 public static class ToolkitLocalizer
 {
+    /// <summary>
+    /// Resolves <paramref name="key"/>. A qualified key (e.g. a generated keys constant) names
+    /// its own assembly and resx; an unqualified key resolves against
+    /// <paramref name="resourceAssembly"/>, or the calling assembly, when not given.
+    /// </summary>
     public static string Get(string key, Assembly? resourceAssembly = null)
     {
         var loc = LocalizationServiceLocator.Resolve<ILocalizationService>();
+        if (resourceAssembly is null && LocalizationKey.Parse(key).IsQualified)
+        {
+            return loc.GetString(key);
+        }
+
         return loc.GetString(key, resourceAssembly ?? Assembly.GetCallingAssembly());
     }
+
+    /// <summary>
+    /// Resolves an unqualified <paramref name="key"/> from the resx named by <paramref name="source"/>
+    /// (e.g. a generated keys class's <c>ResxSource</c> constant).
+    /// </summary>
+    public static string Get(string key, string source)
+        => LocalizationServiceLocator.Resolve<ILocalizationService>().GetString(key, source);
 
     public static CultureInfo CurrentCulture
     {

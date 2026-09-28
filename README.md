@@ -9,6 +9,7 @@ See the [Getting Started](docs/getting-started.md) guide for instructions on how
 - **GenericHost Support**: Integrates with .NET Generic Host for dependency injection and configuration.
 - **Navigation Management**: Simplifies navigation for views and view models.
 - **Localization Key Checking**: Catches missing/undefined localization keys before you run the app. See [Localization key checking](#localization-key-checking) below.
+- **Multiple resx Files**: Split localized strings across any number of `.resx` files per assembly (e.g. one per feature), using generated keys that name their own resx. See [Multiple resx files](src/Meteion.Toolkit.WPF.Localization/README.md#multiple-resx-files).
 - **Localization Key Autocompletion**: Generates a strongly-typed class from your `.resx` keys for autocompletion in code-behind and XAML. See [Key autocompletion](src/Meteion.Toolkit.WPF.Localization/README.md#key-autocompletion).
 - **Runtime Culture Switching**: Change the app's language independently of the OS locale — keeps `Thread.CurrentCulture`, resx lookups, and `FrameworkElement.Language` all in sync. See [Changing the current culture at runtime](src/Meteion.Toolkit.WPF.Localization/README.md#changing-the-current-culture-at-runtime).
 - **Culture-Aware Formatting**: `{lx:CultureAwareFormat}` formats bound numbers/dates/currency using the app's current culture, live. See [Culture-aware number/date/currency formatting](src/Meteion.Toolkit.WPF.Localization/README.md#culture-aware-numberdatecurrency-formatting).

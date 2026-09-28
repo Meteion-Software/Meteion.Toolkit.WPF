@@ -32,4 +32,8 @@ public sealed record LocalizationKeyIssue(
     string Key,
     string NeutralResourcePath,
     string LocaleResourcePath,
-    string CultureName);
+    string CultureName)
+{
+    /// <summary>The diagnostic code: "LOC001" for a missing key, "LOC002" for an orphan.</summary>
+    public string Code => Kind == LocalizationKeyIssueKind.MissingKey ? "LOC001" : "LOC002";
+}
