@@ -34,6 +34,18 @@ public enum LocalizationKeyUsageIssueKind
     /// assembly, so this always throws at runtime.
     /// </summary>
     SourceWithAssembly,
+
+    /// <summary>
+    /// LOC009: a user-visible property or element text holds a plain string literal instead of
+    /// a localized value. Only checked when <see cref="LocalizationCheckOptions.CheckLiterals"/> is set.
+    /// </summary>
+    UnlocalizedLiteral,
+
+    /// <summary>
+    /// LOC010: a <c>&lt;!-- loc-ignore --&gt;</c> comment gives no reason. The element it precedes
+    /// is still skipped by LOC009.
+    /// </summary>
+    IgnoreWithoutReason,
 }
 
 /// <summary>
@@ -60,6 +72,8 @@ public sealed record LocalizationKeyUsageIssue(
         LocalizationKeyUsageIssueKind.UnknownSource => "LOC006",
         LocalizationKeyUsageIssueKind.UnverifiableCrossAssemblyKey => "LOC007",
         LocalizationKeyUsageIssueKind.SourceWithAssembly => "LOC008",
+        LocalizationKeyUsageIssueKind.UnlocalizedLiteral => "LOC009",
+        LocalizationKeyUsageIssueKind.IgnoreWithoutReason => "LOC010",
         _ => throw new ArgumentOutOfRangeException(nameof(Kind), Kind, null),
     };
 

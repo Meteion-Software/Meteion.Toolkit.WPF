@@ -20,6 +20,18 @@ public sealed class LocalizationCheckOptions
     public bool CheckXamlUsages { get; init; } = true;
 
     /// <summary>
+    /// When true, also scan .xaml files for plain string literals in user-visible properties
+    /// (LOC009). Off by default.
+    /// </summary>
+    public bool CheckLiterals { get; init; }
+
+    /// <summary>
+    /// Extra property names (e.g. <c>Foo</c>, <c>Owner.Foo</c>) checked for literals in addition
+    /// to the built-in list.
+    /// </summary>
+    public IReadOnlyCollection<string> AdditionalLiteralProperties { get; init; } = [];
+
+    /// <summary>
     /// The project's assembly name - the first part of every qualified key it generates. When
     /// null, derived from the single <c>*.csproj</c> in the scanned directory (or the directory's
     /// own name), matching the SDK's default of <c>$(MSBuildProjectName)</c>.

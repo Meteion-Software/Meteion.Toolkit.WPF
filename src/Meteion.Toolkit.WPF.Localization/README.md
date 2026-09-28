@@ -51,6 +51,24 @@ unqualified key, point `Source` at the resx it belongs to - its generated `ResxS
 <TextBlock Text="{lx:LocalizedValue Source={x:Static strings:StringsKeys.ResxSource}, KeyPrefix=Feature_, KeyBinding={Binding Key}}" />
 ```
 
+**When the bound key is missing**: a `KeyBinding` that produces `null`, `DependencyProperty.UnsetValue`
+(e.g. a path that doesn't resolve) or `Binding.DoNothing` means "no key", and renders as an empty string.
+Nothing is looked up, so `MissingKeyBehavior` doesn't apply. `UnsetValue` also writes a warning to the WPF
+binding trace (the XAML Binding Failures window) since it usually points at a broken path or `DataContext`;
+`null` is left quiet as a legitimate "not loaded yet". An *empty string* is not special-cased - it's an
+ordinary lookup (with `KeyPrefix` applied), so a forgotten key still surfaces through `MissingKeyBehavior`.
+
+To show a placeholder instead of blank text, set `FallbackValue` (unresolved binding) and/or
+`TargetNullValue` (null) on the `KeyBinding` itself. They supply a *key*, not display text, so the value
+goes through the normal lookup and gets `KeyPrefix` applied:
+
+```xml
+<TextBlock Text="{lx:LocalizedValue Source={x:Static strings:StringsKeys.ResxSource}, KeyPrefix=Feature_,
+                                    KeyBinding={Binding Key, FallbackValue=Unknown, TargetNullValue=Unknown}}" />
+```
+
+(Here `Feature_Unknown` must exist in the resx.)
+
 In code-behind, pass generated constants straight to `ILocalizationService` (or `ToolkitLocalizer` outside DI):
 
 ```csharp
@@ -224,6 +242,39 @@ View.xaml(12): warning LOC003: Key 'SomeTypo' is used here but is not defined in
 | LOC006 | Warning | `Source` names a resx that doesn't exist in this project |
 | LOC007 | Info | A key or `Source` points at another assembly, so it can't be checked from this project |
 | LOC008 | Warning | `Source` and `Assembly` are both set - `Source` already names its assembly, so this always throws at runtime |
+| LOC009 | Warning | A plain string literal in a user-visible property or element text (opt-in, see below) |
+| LOC010 | Warning | A `<!-- loc-ignore -->` comment gives no reason (opt-in, see below) |
+
+### Flagging un-localized literals
+
+The checker can also flag plain string literals that were never localized. It's off by default:
+
+```xml
+<PropertyGroup>
+  <MeteionLocalizationCheckLiterals>true</MeteionLocalizationCheckLiterals>
+</PropertyGroup>
+```
+
+LOC009 is reported for a plain literal in `Text`, `Content`, `Header`, `ToolTip`, `Title`, `Watermark`,
+`AutomationProperties.Name` and the Telerik `NullText`, `EmptyText`, `WatermarkContent`, `Label` and `Caption`,
+as an attribute, a property element (`<Button.Content>`), or as the text of an element such as `<TextBlock>` or
+`<Button>`. Markup extensions (`{lx:LocalizedValue ...}`, `{Binding}`, `{x:Static}`, `{StaticResource}`) and
+strings with no letters (`":"`, `"..."`, `"1"`) are not flagged. Add more properties (`;`-separated):
+
+```xml
+<MeteionLocalizationLiteralProperties>Hint;PlaceholderText</MeteionLocalizationLiteralProperties>
+```
+
+To intentionally leave an element un-localized, put a comment with a reason immediately before it. It covers that
+element's own properties and text, not its children:
+
+```xml
+<!-- loc-ignore: product name -->
+<TextBlock Text="Meteion" />
+```
+
+A comment without a reason still suppresses LOC009 but raises LOC010. Both codes can be promoted to errors like any
+other. By hand, the switches are `--check-literals` and `--literal-property <name>`.
 
 ### Treating localization issues as errors
 

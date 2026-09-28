@@ -1,6 +1,8 @@
 ﻿using Meteion.Toolkit.Localization.Abstractions;
 using Meteion.Toolkit.WPF.Localization.Resolution;
 using System.Reflection;
+using System.Windows;
+using System.Windows.Data;
 
 namespace Meteion.Toolkit.WPF.Localization.Extensions;
 
@@ -130,6 +132,30 @@ internal sealed class LocalizationRequest
                     throw;
             }
         }
+    }
+
+    /// <summary>
+    /// <see cref="ResolveForBinding"/> for a raw value handed over by a binding. "No key" values -
+    /// null, <see cref="DependencyProperty.UnsetValue"/> and <see cref="Binding.DoNothing"/> -
+    /// render as an empty string and are never looked up, so <see cref="MissingKeyBehavior"/>
+    /// doesn't apply to them. Only UnsetValue (a binding that failed to resolve) is traced; null
+    /// is a legitimate "nothing yet". Empty strings are deliberately still ordinary lookups.
+    /// </summary>
+    public string ResolveBoundKey(object? raw)
+    {
+        if (ReferenceEquals(raw, DependencyProperty.UnsetValue))
+        {
+            LocalizationTraceSource.TraceUnsetKey();
+            return string.Empty;
+        }
+
+        if (raw is null || ReferenceEquals(raw, Binding.DoNothing))
+        {
+            return string.Empty;
+        }
+
+        // ToString() matches WPF's implicit conversion on the DependencyProperty path (e.g. enums).
+        return raw.ToString() is { } key ? ResolveForBinding(key) : string.Empty;
     }
 
     /// <summary>
