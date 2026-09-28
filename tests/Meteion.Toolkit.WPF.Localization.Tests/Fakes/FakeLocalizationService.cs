@@ -1,4 +1,4 @@
-using Meteion.Toolkit.Localization.Abstractions;
+﻿using Meteion.Toolkit.Localization.Abstractions;
 using System.ComponentModel;
 using System.Globalization;
 using System.Reflection;
@@ -16,6 +16,7 @@ public sealed class FakeLocalizationService : ILocalizationService
     public string? ValueToReturn { get; set; }
     public string? LastRequestedKey { get; private set; }
     public Assembly? LastRequestedAssembly { get; private set; }
+    public string? LastRequestedSource { get; private set; }
     public int GetStringCallCount { get; private set; }
 
     public CultureInfo CurrentCulture { get; set; } = CultureInfo.InvariantCulture;
@@ -28,10 +29,17 @@ public sealed class FakeLocalizationService : ILocalizationService
     public event PropertyChangedEventHandler? PropertyChanged;
 #pragma warning restore CS0067
 
-    public string GetString(string key, Assembly? resourceAssembly = null)
+    public string GetString(string key) => Record(key, null, null);
+
+    public string GetString(string key, Assembly resourceAssembly) => Record(key, resourceAssembly, null);
+
+    public string GetString(string key, string source) => Record(key, null, source);
+
+    private string Record(string key, Assembly? resourceAssembly, string? source)
     {
         LastRequestedKey = key;
         LastRequestedAssembly = resourceAssembly;
+        LastRequestedSource = source;
         GetStringCallCount++;
         return ValueToReturn ?? key;
     }

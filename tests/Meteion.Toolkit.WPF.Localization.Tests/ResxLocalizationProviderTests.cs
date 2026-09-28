@@ -1,7 +1,6 @@
-using Meteion.Toolkit.Localization.Abstractions;
+﻿using Meteion.Toolkit.Localization.Abstractions;
 using Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx;
 using Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx;
-using Microsoft.Extensions.Options;
 using System.Globalization;
 using System.Reflection;
 
@@ -11,15 +10,18 @@ public class ResxLocalizationProviderTests
 {
     private static readonly Assembly ThisTestAssembly = typeof(ResxLocalizationProviderTests).Assembly;
 
-    private static ResxLocalizationProvider CreateProvider(LocalizationOptions? options = null)
-        => new(Options.Create(options ?? new LocalizationOptions()));
+    private static readonly Assembly MultipleResxAssembly = typeof(Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx.Marker).Assembly;
+
+    private static ResxLocalizationProvider CreateProvider() => new();
+
+    private static LocalizationKey Key(string key) => LocalizationKey.Unqualified(key);
 
     [Fact]
     public void GetLocalizedString_NeutralCulture_ReturnsValueFromResx()
     {
         var provider = CreateProvider();
 
-        var value = provider.GetLocalizedString("Greeting", ThisTestAssembly, CultureInfo.InvariantCulture);
+        var value = provider.GetLocalizedString(Key("Greeting"), ThisTestAssembly, CultureInfo.InvariantCulture);
 
         Assert.Equal("Hello", value);
     }
@@ -29,7 +31,7 @@ public class ResxLocalizationProviderTests
     {
         var provider = CreateProvider();
 
-        var value = provider.GetLocalizedString("Greeting", ThisTestAssembly, new CultureInfo("ja-JP"));
+        var value = provider.GetLocalizedString(Key("Greeting"), ThisTestAssembly, new CultureInfo("ja-JP"));
 
         Assert.Equal("Hello (ja-JP)", value);
     }
@@ -39,7 +41,7 @@ public class ResxLocalizationProviderTests
     {
         var provider = CreateProvider();
 
-        var value = provider.GetLocalizedString("DoesNotExist", ThisTestAssembly, CultureInfo.InvariantCulture);
+        var value = provider.GetLocalizedString(Key("DoesNotExist"), ThisTestAssembly, CultureInfo.InvariantCulture);
 
         Assert.Null(value);
     }
@@ -51,7 +53,12 @@ public class ResxLocalizationProviderTests
 
         var keys = provider.GetAvailableKeys(ThisTestAssembly).ToHashSet();
 
-        Assert.Equal(new HashSet<string> { "Greeting", "Farewell" }, keys);
+        var baseName = $"{ThisTestAssembly.GetName().Name}.Resources.TestStrings";
+        Assert.Equal(new HashSet<string>
+        {
+            $"{ThisTestAssembly.GetName().Name}/{baseName}:Greeting",
+            $"{ThisTestAssembly.GetName().Name}/{baseName}:Farewell",
+        }, keys);
     }
 
     [Fact]
@@ -66,7 +73,7 @@ public class ResxLocalizationProviderTests
         var names = ThisTestAssembly.GetManifestResourceNames();
 
         Assert.Contains(names, n => n.EndsWith(".g.resources", StringComparison.Ordinal));
-        Assert.Equal("Hello", provider.GetLocalizedString("Greeting", ThisTestAssembly, CultureInfo.InvariantCulture));
+        Assert.Equal("Hello", provider.GetLocalizedString(Key("Greeting"), ThisTestAssembly, CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -75,7 +82,7 @@ public class ResxLocalizationProviderTests
         var provider = CreateProvider();
 
         var ex = Assert.Throws<LocalizationConfigurationException>(
-            () => provider.GetLocalizedString("Anything", typeof(Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx.Marker).Assembly, CultureInfo.InvariantCulture));
+            () => provider.GetLocalizedString(Key("Anything"), typeof(Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx.Marker).Assembly, CultureInfo.InvariantCulture));
 
         Assert.Contains("no embedded .resources files", ex.Message);
     }
@@ -87,22 +94,51 @@ public class ResxLocalizationProviderTests
         var ambiguousAssembly = typeof(Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx.Marker).Assembly;
 
         var ex = Assert.Throws<LocalizationConfigurationException>(
-            () => provider.GetLocalizedString("Sample", ambiguousAssembly, CultureInfo.InvariantCulture));
+            () => provider.GetLocalizedString(Key("Sample"), ambiguousAssembly, CultureInfo.InvariantCulture));
 
         Assert.Contains("multiple embedded .resources files", ex.Message);
     }
 
-    [Fact]
-    public void GetLocalizedString_ResourceBaseNameSelectorConfigured_BypassesAmbiguityCheck()
+    [Theory]
+    [InlineData("First")]
+    [InlineData("Second")]
+    public void GetLocalizedString_QualifiedKey_ResolvesFromTheNamedResx(string resxName)
     {
-        var ambiguousAssembly = typeof(Meteion.Toolkit.WPF.Localization.Tests.Fixtures.MultipleResx.Marker).Assembly;
-        var provider = CreateProvider(new LocalizationOptions
+        var provider = CreateProvider();
+        var assemblyName = MultipleResxAssembly.GetName().Name!;
+        var key = LocalizationKey.Qualified(assemblyName, $"{assemblyName}.{resxName}", "Sample");
+
+        var value = provider.GetLocalizedString(key, MultipleResxAssembly, CultureInfo.InvariantCulture);
+
+        Assert.Equal(resxName, value);
+    }
+
+    [Fact]
+    public void GetLocalizedString_QualifiedKeyNamingUnknownResx_ThrowsListingActualResxFiles()
+    {
+        var provider = CreateProvider();
+        var assemblyName = MultipleResxAssembly.GetName().Name!;
+        var key = LocalizationKey.Qualified(assemblyName, $"{assemblyName}.Third", "Sample");
+
+        var ex = Assert.Throws<LocalizationConfigurationException>(
+            () => provider.GetLocalizedString(key, MultipleResxAssembly, CultureInfo.InvariantCulture));
+
+        Assert.Contains($"{assemblyName}.First", ex.Message);
+        Assert.Contains($"{assemblyName}.Second", ex.Message);
+    }
+
+    [Fact]
+    public void GetAvailableKeys_MultipleResx_ReturnsQualifiedKeysFromEveryResx()
+    {
+        var provider = CreateProvider();
+        var assemblyName = MultipleResxAssembly.GetName().Name!;
+
+        var keys = provider.GetAvailableKeys(MultipleResxAssembly).ToHashSet();
+
+        Assert.Equal(new HashSet<string>
         {
-            ResourceBaseNameSelector = asm => $"{asm.GetName().Name}.First"
-        });
-
-        var value = provider.GetLocalizedString("Sample", ambiguousAssembly, CultureInfo.InvariantCulture);
-
-        Assert.Equal("First", value);
+            $"{assemblyName}/{assemblyName}.First:Sample",
+            $"{assemblyName}/{assemblyName}.Second:Sample",
+        }, keys);
     }
 }

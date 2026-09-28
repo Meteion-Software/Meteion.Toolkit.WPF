@@ -1,4 +1,5 @@
 ﻿using Meteion.Toolkit.Localization.Abstractions;
+using Microsoft.Extensions.Options;
 using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
@@ -48,6 +49,15 @@ public class LocalizedValueExtension : MarkupExtension
     /// </summary>
     public string? KeyPrefix { get; set; }
 
+    /// <summary>
+    /// Optional resx identity (<c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;</c>) that
+    /// unqualified keys - a literal <see cref="Key"/>, or each value <see cref="KeyBinding"/>
+    /// produces, with <see cref="KeyPrefix"/> applied - are resolved from. Normally a generated
+    /// keys class's constant: <c>Source={x:Static strings:StringsKeys.ResxSource}</c>. Can't be
+    /// combined with <see cref="Assembly"/>, since it already names the assembly.
+    /// </summary>
+    public string? Source { get; set; }
+
     public LocalizedValueExtension(string key) : this(key, null) { }
 
     public LocalizedValueExtension() { }
@@ -63,7 +73,7 @@ public class LocalizedValueExtension : MarkupExtension
         // TODO: make it so we can toggle functionality
         if (DesignerProperties.GetIsInDesignMode(new DependencyObject()))
         {
-            return KeyBinding != null ? $"[{KeyPrefix}…]" : $"[{CombineKey(Key)}]";
+            return KeyBinding != null || Key == null ? $"[{KeyPrefix}…]" : $"[{LocalizationRequest.DesignTimeText(KeyPrefix, Key)}]";
         }
 
         if (Key == null && KeyBinding == null)
@@ -71,9 +81,7 @@ public class LocalizedValueExtension : MarkupExtension
             return "NOKEY";
         }
 
-        var loc = LocalizationServiceLocator.Resolve<ILocalizationService>();
-        var asmResolver = LocalizationServiceLocator.Resolve<IResourceAssemblyResolver>();
-        var resolvedAssembly = asmResolver.Resolve(Assembly, serviceProvider);
+        var request = CreateRequest(serviceProvider);
 
         var target = serviceProvider.GetService(typeof(IProvideValueTarget)) as IProvideValueTarget;
 
@@ -86,13 +94,13 @@ public class LocalizedValueExtension : MarkupExtension
             // resolved value, exactly as this already worked outside templates before.
             if (KeyBinding != null)
             {
-                var dynamicProxy = new DynamicToolkitLocalizationProxy(loc, resolvedAssembly, KeyPrefix);
+                var dynamicProxy = new DynamicToolkitLocalizationProxy(request);
                 DynamicKeyBinder.Bind(depObj, dynamicProxy, KeyBinding);
                 var dynamicBinding = new Binding(nameof(DynamicToolkitLocalizationProxy.Value)) { Source = dynamicProxy };
                 return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, dynamicBinding);
             }
 
-            var proxy = new ToolkitLocalizationProxy(loc, CombineKey(Key)!, resolvedAssembly);
+            var proxy = new ToolkitLocalizationProxy(request, Key!);
             var binding = new Binding(nameof(ToolkitLocalizationProxy.Value)) { Source = proxy };
             return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, binding);
         }
@@ -110,19 +118,19 @@ public class LocalizedValueExtension : MarkupExtension
             {
                 var multiBinding = new MultiBinding
                 {
-                    Converter = new DynamicKeyLocalizationConverter(loc, resolvedAssembly, KeyPrefix),
+                    Converter = new DynamicKeyLocalizationConverter(request),
                     Mode = BindingMode.OneWay,
                 };
                 multiBinding.Bindings.Add(KeyBinding);
                 multiBinding.Bindings.Add(new Binding(nameof(CultureChangeTrigger.Value))
                 {
-                    Source = new CultureChangeTrigger(loc),
+                    Source = new CultureChangeTrigger(request.Service),
                     Mode = BindingMode.OneWay,
                 });
                 return multiBinding;
             }
 
-            var templateProxy = new ToolkitLocalizationProxy(loc, CombineKey(Key)!, resolvedAssembly);
+            var templateProxy = new ToolkitLocalizationProxy(request, Key!);
             return new Binding(nameof(ToolkitLocalizationProxy.Value)) { Source = templateProxy, Mode = BindingMode.OneWay };
         }
 
@@ -147,16 +155,48 @@ public class LocalizedValueExtension : MarkupExtension
         // Literal Key with no live target: resolved once, non-live. Inside a template this
         // means the text won't update on a later culture change — a known limitation for this
         // specific combination (plain CLR property target + template).
-        return loc.GetString(CombineKey(Key)!, resolvedAssembly);
+        return request.Resolve(Key!);
     }
 
     /// <summary>
-    /// Prepends <see cref="KeyPrefix"/> (if set) to a resolved key. Used for the literal
-    /// <see cref="Key"/> path; the <see cref="KeyBinding"/> path applies the same prefix
-    /// per-value instead, via <see cref="DynamicToolkitLocalizationProxy"/> or
-    /// <see cref="DynamicKeyLocalizationConverter"/>, since the key isn't known until runtime.
+    /// Builds the <see cref="LocalizationRequest"/> both the literal <see cref="Key"/> and the
+    /// <see cref="KeyBinding"/> paths resolve through. The context assembly is resolved eagerly,
+    /// while the XAML service provider is still valid, but a failure is only surfaced if an
+    /// unqualified key without a <see cref="Source"/> actually needs it - a qualified key names
+    /// its own assembly.
     /// </summary>
-    private string? CombineKey(string? key) => key == null ? null : KeyPrefix + key;
+    private LocalizationRequest CreateRequest(IServiceProvider serviceProvider)
+    {
+        if (Source is not null && Assembly is not null)
+        {
+            throw new LocalizationConfigurationException(
+                $"{nameof(LocalizedValueExtension)}.{nameof(Source)} and .{nameof(Assembly)} can't both be set - " +
+                $"Source '{Source}' already names its assembly.");
+        }
+
+        var loc = LocalizationServiceLocator.Resolve<ILocalizationService>();
+
+        Assembly? contextAssembly = null;
+        Exception? contextAssemblyError = null;
+        if (Source is null)
+        {
+            try
+            {
+                contextAssembly = LocalizationServiceLocator.Resolve<IResourceAssemblyResolver>().Resolve(Assembly, serviceProvider);
+            }
+            catch (LocalizationConfigurationException ex)
+            {
+                contextAssemblyError = ex;
+            }
+        }
+
+        // Options are registered by AddWpfLocalization; fall back to their defaults when a host
+        // (or a test) wires up the services without them.
+        var missingKeyBehavior = LocalizationServiceLocator.TryResolve<IOptions<LocalizationOptions>>()?.Value.MissingKeyBehavior
+            ?? new LocalizationOptions().MissingKeyBehavior;
+
+        return new LocalizationRequest(loc, contextAssembly, Source, KeyPrefix, Assembly, contextAssemblyError, missingKeyBehavior);
+    }
 }
 
 /// <summary>

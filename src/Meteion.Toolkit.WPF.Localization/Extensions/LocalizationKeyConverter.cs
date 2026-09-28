@@ -1,4 +1,4 @@
-using Meteion.Toolkit.Localization.Abstractions;
+﻿using Meteion.Toolkit.Localization.Abstractions;
 using System.ComponentModel;
 using System.Reflection;
 
@@ -65,15 +65,16 @@ public class LocalizationKeyConverter : StringConverter
 
             foreach (var type in types)
             {
-                if (!type.IsDefined(typeof(GeneratedLocalizationKeysAttribute), inherit: false))
+                if (type.GetCustomAttribute<GeneratedLocalizationKeysAttribute>(inherit: false) is not { } marker)
                 {
                     continue;
                 }
 
                 foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
                 {
+                    // The class's ResxSource constant identifies the resx itself, not a key.
                     if (field.FieldType == typeof(string) && field.IsLiteral &&
-                        field.GetRawConstantValue() is string value)
+                        field.GetRawConstantValue() is string value && value != marker.ResxSource)
                     {
                         keys.Add(value);
                     }

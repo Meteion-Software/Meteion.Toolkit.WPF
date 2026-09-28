@@ -22,6 +22,16 @@ internal static class GeneratorTestHarness
         string? rootNamespace = "TestApp",
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? perFileMetadata = null,
         bool referenceAbstractions = true)
+        => RunWithDiagnostics(resxFiles, rootNamespace, perFileMetadata, referenceAbstractions).Sources;
+
+    /// <summary>
+    /// <see cref="Run"/>, plus the diagnostics the generator reported.
+    /// </summary>
+    public static (IReadOnlyDictionary<string, string> Sources, IReadOnlyList<Diagnostic> Diagnostics) RunWithDiagnostics(
+        IEnumerable<(string Path, string Contents)> resxFiles,
+        string? rootNamespace = "TestApp",
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>>? perFileMetadata = null,
+        bool referenceAbstractions = true)
     {
         var additionalTexts = resxFiles
             .Select(f => new TestAdditionalText(f.Path, f.Contents))
@@ -64,9 +74,11 @@ internal static class GeneratorTestHarness
         driver = (CSharpGeneratorDriver)driver.RunGenerators(compilation);
         var runResult = driver.GetRunResult();
 
-        return runResult.Results
+        var sources = runResult.Results
             .SelectMany(r => r.GeneratedSources)
             .ToDictionary(s => s.HintName, s => s.SourceText.ToString());
+
+        return (sources, runResult.Diagnostics);
     }
 
     private static IEnumerable<string> GetTrustedPlatformAssemblyPaths()

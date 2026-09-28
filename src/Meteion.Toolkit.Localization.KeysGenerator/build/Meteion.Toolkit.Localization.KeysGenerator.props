@@ -17,12 +17,15 @@
       "build_metadata.<ItemType>.<MetadataName>") for metadata explicitly opted in here - this
       isn't optional wiring, the generator can't see any of these without it. RelativeDir is
       well-known metadata (computed automatically for every item) that feeds the generated
-      class's default namespace; the other two are the per-file <AdditionalFiles ...> overrides
-      documented on LocalizationKeysGenerator.
+      class's default namespace and resource base name; the others are the per-file
+      <AdditionalFiles ...> overrides documented on LocalizationKeysGenerator
+      (MeteionResourceBaseName covers resx files whose manifest name isn't the MSBuild default,
+      e.g. one with LogicalName or DependentUpon set).
     -->
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="RelativeDir" />
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MeteionKeysNamespace" />
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MeteionKeysClassName" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="MeteionResourceBaseName" />
   </ItemGroup>
 
 </Project>

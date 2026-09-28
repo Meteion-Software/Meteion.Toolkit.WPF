@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using Meteion.Toolkit.Localization.Abstractions;
 using Meteion.Toolkit.MVVM.Services;
+using Meteion.Toolkit.WPF.SampleApp.Resources;
 using Meteion.Toolkit.WPF.SampleApp.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
@@ -21,7 +22,7 @@ public partial class HomePageViewModel : INotifyPropertyChanged
     private readonly ILocalizationService _localizationService;
     private readonly INavigationService _navService;
 
-    private string _selectedKey = "HomePage_WelcomeMessage";
+    private string _selectedKey = HomeKeys.WelcomeMessage;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -39,9 +40,17 @@ public partial class HomePageViewModel : INotifyPropertyChanged
 
     /// <summary>
     /// Resource keys the user can pick from, to drive the KeyBinding-via-ComboBox example.
+    /// Generated constants hold qualified keys, so one list can mix keys from both resx files.
     /// </summary>
     public ObservableCollection<string> AvailableKeys { get; } = new(
-        ["HomePage_WelcomeMessage", "ChangeLanguage", "ScopeID", "Feature_Alpha", "Feature_Beta", "Feature_Gamma"]);
+    [
+        HomeKeys.WelcomeMessage,
+        ResourcesKeys.ChangeLanguage,
+        ResourcesKeys.ScopeID,
+        ResourcesKeys.Feature_Alpha,
+        ResourcesKeys.Feature_Beta,
+        ResourcesKeys.Feature_Gamma,
+    ]);
 
     /// <summary>
     /// Backs the DataTemplate example: each row resolves its own resource key via
@@ -49,13 +58,13 @@ public partial class HomePageViewModel : INotifyPropertyChanged
     /// resolved inside an ItemsControl.ItemTemplate.
     /// </summary>
     public ObservableCollection<FeatureItem> Features { get; } = new(
-        [new FeatureItem("Feature_Alpha"), new FeatureItem("Feature_Beta"), new FeatureItem("Feature_Gamma")]);
+        [new FeatureItem(ResourcesKeys.Feature_Alpha), new FeatureItem(ResourcesKeys.Feature_Beta), new FeatureItem(ResourcesKeys.Feature_Gamma)]);
 
     /// <summary>
     /// Backs the KeyPrefix example: each row supplies only the short suffix ("Alpha", "Beta",
-    /// "Gamma") via {lx:LocalizedValue KeyPrefix=Feature_, KeyBinding={Binding Key}}, which
-    /// combines with the shared "Feature_" prefix set once in XAML to resolve the same
-    /// Feature_Alpha/Beta/Gamma resx keys the DataTemplate example above uses directly.
+    /// "Gamma") via {lx:LocalizedValue Source=..., KeyPrefix=Feature_, KeyBinding={Binding Key}},
+    /// which combines with the shared "Feature_" prefix and the Source resx set once in XAML to
+    /// resolve the same Feature_Alpha/Beta/Gamma resx keys the DataTemplate example above uses.
     /// </summary>
     public ObservableCollection<FeatureItem> FeatureSuffixes { get; } = new(
         [new FeatureItem("Alpha"), new FeatureItem("Beta"), new FeatureItem("Gamma")]);

@@ -70,15 +70,6 @@ namespace Meteion.Toolkit.WPF.SampleApp.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Welcome to the home page!.
-        /// </summary>
-        internal static string HomePage_WelcomeMessage {
-            get {
-                return ResourceManager.GetString("HomePage_WelcomeMessage", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Scope ID.
         /// </summary>
         internal static string ScopeID {

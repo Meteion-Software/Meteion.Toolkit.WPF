@@ -38,4 +38,11 @@
     <None Include="build\Meteion.Toolkit.Localization.KeysGenerator.props" Pack="true" PackagePath="buildTransitive\Meteion.Toolkit.Localization.KeysGenerator.props" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Naming rules shared with the other of KeysGenerator / Check.Core - see ResxNaming. -->
+    <Compile Include="..\Shared\ResxNaming.cs" Link="Shared\ResxNaming.cs" />
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
 </Project>

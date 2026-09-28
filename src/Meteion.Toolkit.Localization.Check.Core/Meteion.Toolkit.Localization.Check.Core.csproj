@@ -5,4 +5,9 @@
     <Description>Scans .resx localization resources and XAML usages for missing or undefined localization keys. The reusable engine behind the `meteion-loc-check` tool.</Description>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Naming rules shared with the other of KeysGenerator / Check.Core - see ResxNaming. -->
+    <Compile Include="..\Shared\ResxNaming.cs" Link="Shared\ResxNaming.cs" />
+  </ItemGroup>
+
 </Project>

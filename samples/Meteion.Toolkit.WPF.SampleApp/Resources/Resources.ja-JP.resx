@@ -120,9 +120,6 @@
   <data name="ChangeLanguage" xml:space="preserve">
     <value>言語を変更する</value>
   </data>
-  <data name="HomePage_WelcomeMessage" xml:space="preserve">
-    <value>ホームページへようこそ！</value>
-  </data>
   <data name="ScopeID" xml:space="preserve">
     <value>スコープID</value>
   </data>
