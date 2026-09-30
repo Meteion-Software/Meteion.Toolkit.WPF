@@ -379,3 +379,5 @@ lib/local-packages/
 
 **/aspire-output/
 /sentry-cli-Windows-x86_64.exe
+
+.claude/
