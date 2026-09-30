@@ -5,6 +5,7 @@ using Meteion.Toolkit.WPF.Localization;
 using Meteion.Toolkit.WPF.MVVM;
 using Meteion.Toolkit.WPF.SampleApp.Services;
 using Meteion.Toolkit.WPF.SampleApp.ViewModels;
+using Meteion.Toolkit.WPF.SplashScreen;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -22,9 +23,26 @@ public static class Program
             throw new Exception("Main application thread is not STA, but many components require this.");
         }
 
+        // Show the splash before anything else so it appears as early as possible; the host closes it once MainWindow has rendered.
+        var splash = new SplashScreenBuilder()
+            .UseImageFromEmbeddedResource("Splash.png")
+            .Configure(o =>
+            {
+                o.ShowProgressBar = true;
+                o.ShowStatusText = true;
+                o.ProgressBarCornerRadius = 3;
+                o.FadeIn = true;
+                o.MinimumDisplayTime = TimeSpan.FromSeconds(1);
+            })
+            .Show();
+
         var builder = new HostApplicationBuilder()
             .ConfigureLaunchWindow<MainWindow>() // Note: this window is not resolved using your chosen IWindowResolutionService.
-            .ConfigureApplication<App>();
+            .ConfigureApplication<App>()
+            .UseSplashScreen(splash);
+
+        // Fake slow startup work that reports to the splash. Remove in a real app.
+        builder.Services.AddHostedService<SimulatedStartupService>();
 
         // Navigation will scope to the window.
         // Note: ensure you use a scoped serviceprovider when creating a window instance outside of the IWindowResolutionService!

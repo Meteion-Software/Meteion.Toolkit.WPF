@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>An optional native splash screen (layered window, per-pixel alpha, optional progress bar and status text) for Meteion.Toolkit.WPF applications. Shows before the WPF runtime starts.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Meteion.Toolkit.WPF.Hosting\Meteion.Toolkit.WPF.Hosting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Meteion.Toolkit.WPF.SplashScreen.Tests" />
+  </ItemGroup>
+
+</Project>

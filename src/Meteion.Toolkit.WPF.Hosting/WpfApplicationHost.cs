@@ -43,22 +43,54 @@ namespace Meteion.Toolkit.WPF.Hosting
                 throw new Exception("StartAsync thread is not STA, but many components require this.");
             }
 
-            _application = (WpfGenericHostApplication)_baseHost.Services.GetRequiredService(_applicationType);
-            _application.Host = this;
-            _logger?.LogDebug("Calling app to perform initialize component.");
-            _application.PerformInitializeComponent();
-            var scope = _baseHost.Services.CreateScope();
-            _application.MainWindow = (Window)scope.ServiceProvider.GetRequiredService(_startupWindowType);
-            _application.ShutdownMode = ShutdownMode.OnLastWindowClose; // TODO: determine if this should be configurable
-            _logger?.LogInformation("Calling BaseHost to start app.");
-            // We need to call StartAsync synchronously here because the WPF application run will block the thread and we need to ensure that the base host is started before we run the application.
-            _baseHost.StartAsync(cancellationToken).GetAwaiter().GetResult();
+            var hooks = _baseHost.Services.GetServices<IWpfHostLifecycleHook>().ToArray();
+
+            try
+            {
+                _application = (WpfGenericHostApplication)_baseHost.Services.GetRequiredService(_applicationType);
+                _application.Host = this;
+                _logger?.LogDebug("Calling app to perform initialize component.");
+                _application.PerformInitializeComponent();
+                var scope = _baseHost.Services.CreateScope();
+                _application.MainWindow = (Window)scope.ServiceProvider.GetRequiredService(_startupWindowType);
+                _application.ShutdownMode = ShutdownMode.OnLastWindowClose; // TODO: determine if this should be configurable
+                _logger?.LogInformation("Calling BaseHost to start app.");
+                // We need to call StartAsync synchronously here because the WPF application run will block the thread and we need to ensure that the base host is started before we run the application.
+                _baseHost.StartAsync(cancellationToken).GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                NotifyHooks(hooks, hook => hook.OnStartupFailed(ex), nameof(IWpfHostLifecycleHook.OnStartupFailed));
+                throw;
+            }
+
+            var launchWindow = _application.MainWindow;
+            NotifyHooks(hooks, hook => hook.OnLaunchWindowCreated(launchWindow), nameof(IWpfHostLifecycleHook.OnLaunchWindowCreated));
             _logger?.LogInformation("Calling application run.");
             _application.Run(_application.MainWindow); // this will hold the thread until the app is shut down
             _logger?.LogInformation("Application run completed. Shutting down.");
             // Now that the application has exited, we can call StopAsync on the base host to ensure that any hosted services are stopped gracefully.
             _baseHost.StopAsync(cancellationToken).GetAwaiter().GetResult();
             _logger?.LogInformation("Shutdown complete. Exiting StartAsync task.");
+        }
+
+        /// <summary>
+        /// Invokes <paramref name="action"/> on every hook. A hook that throws is logged and skipped, so one faulty
+        /// hook can neither mask a startup exception nor stop the others from running.
+        /// </summary>
+        private void NotifyHooks(IWpfHostLifecycleHook[] hooks, Action<IWpfHostLifecycleHook> action, string hookName)
+        {
+            foreach (var hook in hooks)
+            {
+                try
+                {
+                    action(hook);
+                }
+                catch (Exception hookException)
+                {
+                    _logger?.LogError(hookException, "{Hook}.{Method} threw an exception.", hook.GetType().Name, hookName);
+                }
+            }
         }
 
         public Task StopAsync(CancellationToken cancellationToken = default)

@@ -20,6 +20,10 @@
     <Project Path="tests/Meteion.Toolkit.WPF.MVVM.Tests.Fixtures.NamingConvention/Meteion.Toolkit.WPF.MVVM.Tests.Fixtures.NamingConvention.csproj" />
     <Project Path="tests/Meteion.Toolkit.WPF.MVVM.Tests/Meteion.Toolkit.WPF.MVVM.Tests.csproj" />
   </Folder>
+  <Folder Name="/SplashScreen/">
+    <Project Path="src/Meteion.Toolkit.WPF.SplashScreen/Meteion.Toolkit.WPF.SplashScreen.csproj" />
+    <Project Path="tests/Meteion.Toolkit.WPF.SplashScreen.Tests/Meteion.Toolkit.WPF.SplashScreen.Tests.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />
     <File Path="README.md" />

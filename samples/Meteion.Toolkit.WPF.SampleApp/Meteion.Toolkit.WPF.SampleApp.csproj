@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Hosting\Meteion.Toolkit.WPF.Hosting.csproj" />
     <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Localization\Meteion.Toolkit.WPF.Localization.csproj" />
     <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF\Meteion.Toolkit.WPF.csproj" />
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.SplashScreen\Meteion.Toolkit.WPF.SplashScreen.csproj" />
     <!-- Build-order only (not a binary dependency) - ensures the checker tool is built
          before the .targets Import below tries to run it. -->
     <ProjectReference Include="..\..\src\Meteion.Toolkit.Localization.Check\Meteion.Toolkit.Localization.Check.csproj" ReferenceOutputAssembly="false" Private="false" />
@@ -40,6 +41,11 @@
     has to do it explicitly.
   -->
   <Import Project="..\..\src\Meteion.Toolkit.Localization.KeysGenerator\build\Meteion.Toolkit.Localization.KeysGenerator.props" />
+
+  <ItemGroup>
+    <!-- The splash image must be an EmbeddedResource (not a WPF Resource) so it can be read before WPF starts. -->
+    <EmbeddedResource Include="Resources\Splash.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Update="Resources\Resources.Designer.cs">
