@@ -99,6 +99,12 @@ public partial class HomePageViewModel : INotifyPropertyChanged
     public Task NavigateToSecondPage() => _navService.NavigateTo<SecondPageViewModel>();
 
     /// <summary>
+    /// Navigates to the StatefulContainer example (loading / loaded / error states, with Retry).
+    /// </summary>
+    [RelayCommand]
+    public Task NavigateToStatefulContainerPage() => _navService.NavigateTo<StatefulContainerPageViewModel>();
+
+    /// <summary>
     /// Navigates to the LocalizedBinding example, a DataGrid column localized via
     /// {lx:LocalizedBinding}.
     /// </summary>

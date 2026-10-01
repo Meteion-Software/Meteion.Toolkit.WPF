@@ -33,9 +33,20 @@ public interface INavigationProgress
 ## Usage
 
 `NavigationService` is registered in DI as `INavigationService`, so get to the progress events by
-checking for `INavigationProgress` on the resolved instance:
+checking for `INavigationProgress` on the resolved instance. Drive a [`StatefulContainer`](StatefulContainer.md)
+in `Overlay` mode from them with a `ViewState` owned by the window:
+
+```xaml
+<Grid xmlns:meteion="http://wpf.meteion.ca/winfx/xaml">
+    <meteion:StatefulContainer Mode="Overlay" State="{Binding NavigationState, RelativeSource={RelativeSource AncestorType=Window}}">
+        <Frame x:Name="ShellFrame" NavigationUIVisibility="Hidden" />
+    </meteion:StatefulContainer>
+</Grid>
+```
 
 ```cs
+public ViewState NavigationState { get; } = CreateLoadedState();
+
 public MainWindow(INavigationService navService)
 {
     InitializeComponent();
@@ -43,9 +54,16 @@ public MainWindow(INavigationService navService)
 
     if (navService is INavigationProgress navProgress)
     {
-        navProgress.NavigationStarted += (_, _) => NavigationBusyOverlay.IsBusy = true;
-        navProgress.NavigationCompleted += (_, _) => NavigationBusyOverlay.IsBusy = false;
+        navProgress.NavigationStarted += (_, _) => NavigationState.SetLoading();
+        navProgress.NavigationCompleted += (_, _) => NavigationState.SetLoaded();
     }
+}
+
+private static ViewState CreateLoadedState()
+{
+    var state = new ViewState();   // starts as Loading
+    state.SetLoaded();
+    return state;
 }
 ```
 
@@ -55,18 +73,13 @@ Adjust the delay if you want the indicator to appear sooner/later:
 navProgress.NavigationIndicatorDelay = TimeSpan.FromMilliseconds(400);
 ```
 
-## BusyOverlay
+## Migrating from BusyOverlay
 
-`Meteion.Toolkit.WPF.Controls.BusyOverlay` is a small `IsBusy`-driven control with a dimmed
-background and an animated spinner, included for convenience — it's not tied to navigation in any
-way, just a generic overlay. Place it in the same panel cell as the content it should cover:
+`BusyOverlay` has been removed in favour of [`StatefulContainer`](StatefulContainer.md), which does
+the same dim-and-spinner job in `Overlay` mode and also covers loading/error states for ordinary
+content. Replace `<meteion:BusyOverlay x:Name="..."/>` (placed next to the content) with a
+`StatefulContainer` wrapping that content, and replace `overlay.IsBusy = true/false` with
+`state.SetLoading()` / `state.SetLoaded()`.
 
-```xaml
-<Grid xmlns:meteion="http://wpf.meteion.ca/winfx/xaml">
-    <Frame x:Name="ShellFrame" NavigationUIVisibility="Hidden" />
-    <meteion:BusyOverlay x:Name="NavigationBusyOverlay" />
-</Grid>
-```
-
-You don't have to use `BusyOverlay` — `NavigationStarted`/`NavigationCompleted` are enough to drive
-any indicator (your own control, a status bar message, disabling input, etc.).
+You don't have to use it — `NavigationStarted`/`NavigationCompleted` are enough to drive any
+indicator (your own control, a status bar message, disabling input, etc.).

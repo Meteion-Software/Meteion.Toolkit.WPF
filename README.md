@@ -8,7 +8,8 @@ See the [Getting Started](docs/getting-started.md) guide for instructions on how
 - **MVVM Support**: Provides base classes and utilities to implement the MVVM pattern effectively.
 - **GenericHost Support**: Integrates with .NET Generic Host for dependency injection and configuration.
 - **Navigation Management**: Simplifies navigation for views and view models.
-- **Navigation Loading Indicator**: Opt-in events (`INavigationProgress`) and a `BusyOverlay` control for showing a spinner during slow navigations, with built-in flicker protection. See [Navigation Loading Indicator](docs/NavigationLoadingIndicator.md).
+- **Navigation Loading Indicator**: Opt-in events (`INavigationProgress`) for showing a spinner (via `StatefulContainer`) during slow navigations, with built-in flicker protection. See [Navigation Loading Indicator](docs/NavigationLoadingIndicator.md).
+- **StatefulContainer**: A control plus `ViewState`/`IStatefulViewModel` for showing a loading indicator, your content, or an error state (with optional Retry) from one MVVM state object, with overridable templates and a Replace or Overlay mode. Replaces `BusyOverlay`. See [StatefulContainer](docs/StatefulContainer.md).
 - **Splash Screen**: An optional package that shows a native, per-pixel-alpha splash screen (with optional progress bar and status text) before WPF starts, and hands off to your launch window. See [Splash Screen](docs/SplashScreen.md).
 - **Localization Key Checking**: Catches missing/undefined localization keys before you run the app. See [Localization key checking](docs/localization/KeyChecking.md).
 - **LocalizedBinding**: `{lx:LocalizedBinding}` gives a one-way localized binding for DataGrid columns and other `BindingBase` properties. See [LocalizedBinding](docs/localization/LocalizedBinding.md).

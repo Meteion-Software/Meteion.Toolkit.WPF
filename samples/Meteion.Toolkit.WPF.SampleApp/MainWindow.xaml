@@ -23,11 +23,12 @@
         </TextBlock>
 
         <Grid Grid.Row="1">
-            <Frame
-                x:Name="ShellFrame"
-                NavigationUIVisibility="Hidden" />
-
-            <meteion:BusyOverlay x:Name="NavigationBusyOverlay" />
+            <!--  Overlay mode keeps the current page visible (dimmed) while a slow navigation loads.  -->
+            <meteion:StatefulContainer Mode="Overlay" State="{Binding NavigationState, RelativeSource={RelativeSource AncestorType=Window}}">
+                <Frame
+                    x:Name="ShellFrame"
+                    NavigationUIVisibility="Hidden" />
+            </meteion:StatefulContainer>
         </Grid>
     </Grid>
 </Window>
