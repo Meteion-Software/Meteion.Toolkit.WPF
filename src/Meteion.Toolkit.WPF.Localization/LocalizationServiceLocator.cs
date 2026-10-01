@@ -1,4 +1,4 @@
-﻿using Meteion.Toolkit.WPF.Hosting;
+﻿using Meteion.Toolkit.Localization.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 
@@ -9,8 +9,17 @@ namespace Meteion.Toolkit.WPF.Localization;
 /// </summary>
 internal static class LocalizationServiceLocator
 {
-    // TODO: determine a better way to do this. Especially if they aren't using WpfGenericHostApplication.
-    public static Func<IServiceProvider> ServiceProviderAccessor { get; set; } = () => ((WpfGenericHostApplication)Application.Current).Host.Services;
+    /// <summary>
+    /// Defaults to the running application's services. Throws a clear error when there is no
+    /// <see cref="IServiceProviderApplication"/> - e.g. in the Visual Studio designer, where
+    /// <see cref="Application.Current"/> is the designer's own surface app.
+    /// </summary>
+    public static Func<IServiceProvider> ServiceProviderAccessor { get; set; } = () =>
+        (Application.Current as IServiceProviderApplication)?.Services
+        ?? throw new LocalizationConfigurationException(
+            $"Localization needs the application's services, but {Application.Current?.GetType().FullName ?? "no Application"} " +
+            $"doesn't implement {nameof(IServiceProviderApplication)}. Derive from WpfGenericHostApplication, " +
+            $"or implement {nameof(IServiceProviderApplication)} on your Application.");
 
     public static T Resolve<T>() where T : notnull => ServiceProviderAccessor().GetRequiredService<T>();
 
