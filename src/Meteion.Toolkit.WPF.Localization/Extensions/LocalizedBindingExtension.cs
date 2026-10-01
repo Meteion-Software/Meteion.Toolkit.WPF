@@ -1,4 +1,5 @@
 using Meteion.Toolkit.Localization.Abstractions;
+using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Data;
@@ -73,6 +74,14 @@ public class LocalizedBindingExtension : MarkupExtension
                 "supplying the resource key to localize.");
         }
 
+        // In the designer there's no host application to resolve the localization service from
+        // (Application.Current is the designer's own surface app), so skip it entirely and show
+        // the raw key instead. The binding stays a BindingBase, which is what the target needs.
+        if (DesignerProperties.GetIsInDesignMode(new DependencyObject()))
+        {
+            return KeyBinding.ProvideValue(serviceProvider);
+        }
+
         // Source + Assembly together is rejected here, with the others from the shared rules.
         var request = LocalizationRequest.Create(Source, Assembly, KeyPrefix, serviceProvider);
 
@@ -90,7 +99,7 @@ public class LocalizedBindingExtension : MarkupExtension
 
         // Unlike LocalizedValueExtension, nothing is pushed into the target, so there's no
         // DependencyProperty / CLR property / template distinction to make - the same
-        // MultiBinding works for any BindingBase-typed target, including at design time.
+        // MultiBinding works for any BindingBase-typed target.
         var multiBinding = new MultiBinding
         {
             Converter = new DynamicKeyLocalizationConverter(request),
