@@ -10,11 +10,15 @@ See the [Getting Started](docs/getting-started.md) guide for instructions on how
 - **Navigation Management**: Simplifies navigation for views and view models.
 - **Navigation Loading Indicator**: Opt-in events (`INavigationProgress`) and a `BusyOverlay` control for showing a spinner during slow navigations, with built-in flicker protection. See [Navigation Loading Indicator](docs/NavigationLoadingIndicator.md).
 - **Splash Screen**: An optional package that shows a native, per-pixel-alpha splash screen (with optional progress bar and status text) before WPF starts, and hands off to your launch window. See [Splash Screen](docs/SplashScreen.md).
-- **Localization Key Checking**: Catches missing/undefined localization keys before you run the app. See [Localization key checking](#localization-key-checking) below.
-- **Multiple resx Files**: Split localized strings across any number of `.resx` files per assembly (e.g. one per feature), using generated keys that name their own resx. See [Multiple resx files](src/Meteion.Toolkit.WPF.Localization/README.md#multiple-resx-files).
-- **Localization Key Autocompletion**: Generates a strongly-typed class from your `.resx` keys for autocompletion in code-behind and XAML. See [Key autocompletion](src/Meteion.Toolkit.WPF.Localization/README.md#key-autocompletion).
-- **Runtime Culture Switching**: Change the app's language independently of the OS locale — keeps `Thread.CurrentCulture`, resx lookups, and `FrameworkElement.Language` all in sync. See [Changing the current culture at runtime](src/Meteion.Toolkit.WPF.Localization/README.md#changing-the-current-culture-at-runtime).
-- **Culture-Aware Formatting**: `{lx:CultureAwareFormat}` formats bound numbers/dates/currency using the app's current culture, live. See [Culture-aware number/date/currency formatting](src/Meteion.Toolkit.WPF.Localization/README.md#culture-aware-numberdatecurrency-formatting).
+- **Localization Key Checking**: Catches missing/undefined localization keys before you run the app. See [Localization key checking](docs/localization/KeyChecking.md).
+- **LocalizedBinding**: `{lx:LocalizedBinding}` gives a one-way localized binding for DataGrid columns and other `BindingBase` properties. See [LocalizedBinding](docs/localization/LocalizedBinding.md).
+- **Multiple resx Files**: Split localized strings across any number of `.resx` files per assembly (e.g. one per feature), using generated keys that name their own resx. See [Multiple resx files](docs/localization/MultipleResxFiles.md).
+- **Localization Key Autocompletion**: Generates a strongly-typed class from your `.resx` keys for autocompletion in code-behind and XAML. See [Key autocompletion](docs/localization/KeyAutocompletion.md).
+- **Runtime Culture Switching**: Change the app's language independently of the OS locale — keeps `Thread.CurrentCulture`, resx lookups, and `FrameworkElement.Language` all in sync. See [Changing the current culture at runtime](docs/localization/ChangingCulture.md).
+- **Culture-Aware Formatting**: `{lx:CultureAwareFormat}` formats bound numbers/dates/currency using the app's current culture, live. See [Culture-aware number/date/currency formatting](docs/localization/CultureAwareFormatting.md).
+
+## Localization
+See the [Localization docs](docs/localization/README.md) for usage and tooling guides.
 
 ## Recommendations
 We recommend using this alongside CommunityToolkit.Mvvm for a complete MVVM experience.

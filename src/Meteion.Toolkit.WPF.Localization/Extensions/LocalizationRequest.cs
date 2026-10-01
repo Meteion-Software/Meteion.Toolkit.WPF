@@ -1,5 +1,6 @@
 ﻿using Meteion.Toolkit.Localization.Abstractions;
 using Meteion.Toolkit.WPF.Localization.Resolution;
+using Microsoft.Extensions.Options;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Data;
@@ -52,6 +53,51 @@ internal sealed class LocalizationRequest
         Source = source;
         KeyPrefix = keyPrefix;
         ExplicitAssembly = explicitAssembly;
+    }
+
+    /// <summary>
+    /// Builds the request for one markup-extension usage. The context assembly is resolved
+    /// eagerly, while the XAML service provider is still valid, but a failure is only surfaced if
+    /// an unqualified key without a <paramref name="source"/> actually needs it - a qualified key
+    /// names its own assembly.
+    /// </summary>
+    /// <exception cref="LocalizationConfigurationException">
+    /// <paramref name="source"/> and <paramref name="assembly"/> were both set.
+    /// </exception>
+    public static LocalizationRequest Create(
+        string? source,
+        Assembly? assembly,
+        string? keyPrefix,
+        IServiceProvider serviceProvider)
+    {
+        if (source is not null && assembly is not null)
+        {
+            throw new LocalizationConfigurationException(
+                $"Source and Assembly can't both be set - Source '{source}' already names its assembly.");
+        }
+
+        var loc = LocalizationServiceLocator.Resolve<ILocalizationService>();
+
+        Assembly? contextAssembly = null;
+        Exception? contextAssemblyError = null;
+        if (source is null)
+        {
+            try
+            {
+                contextAssembly = LocalizationServiceLocator.Resolve<IResourceAssemblyResolver>().Resolve(assembly, serviceProvider);
+            }
+            catch (LocalizationConfigurationException ex)
+            {
+                contextAssemblyError = ex;
+            }
+        }
+
+        // Options are registered by AddWpfLocalization; fall back to their defaults when a host
+        // (or a test) wires up the services without them.
+        var missingKeyBehavior = LocalizationServiceLocator.TryResolve<IOptions<LocalizationOptions>>()?.Value.MissingKeyBehavior
+            ?? new LocalizationOptions().MissingKeyBehavior;
+
+        return new LocalizationRequest(loc, contextAssembly, source, keyPrefix, assembly, contextAssemblyError, missingKeyBehavior);
     }
 
     public ILocalizationService Service { get; }

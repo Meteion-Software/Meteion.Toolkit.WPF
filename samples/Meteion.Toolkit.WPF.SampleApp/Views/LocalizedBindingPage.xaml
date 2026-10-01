@@ -1,0 +1,50 @@
+<Page
+    x:Class="Meteion.Toolkit.WPF.SampleApp.Views.LocalizedBindingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:keys="clr-namespace:Meteion.Toolkit.WPF.SampleApp.Resources"
+    xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewmodels="clr-namespace:Meteion.Toolkit.WPF.SampleApp.ViewModels"
+    Title="LocalizedBinding"
+    d:DataContext="{d:DesignInstance Type=viewmodels:LocalizedBindingPageViewModel}"
+    mc:Ignorable="d">
+
+    <StackPanel Margin="10">
+        <TextBlock
+            Margin="0,0,0,10"
+            FontWeight="Bold"
+            Text="LocalizedBinding usage example" />
+
+        <!--
+            DataGridTextColumn.Binding is a plain CLR property (typed BindingBase), so
+            {lx:LocalizedValue KeyBinding=...} can't be used there. {lx:LocalizedBinding} returns a
+            one-way MultiBinding instead, which any BindingBase property accepts. Each row supplies
+            only the short suffix ("Alpha", "Beta", "Gamma"); Source and KeyPrefix are set once here,
+            exactly as for LocalizedValue. Switch the language from the home page and come back: the
+            column resolves in the current culture, and re-resolves live on a culture change.
+        -->
+        <DataGrid
+            Margin="0,0,0,10"
+            AutoGenerateColumns="False"
+            CanUserAddRows="False"
+            IsReadOnly="True"
+            ItemsSource="{Binding Rows}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Width="*" Binding="{Binding Name}" Header="Name (not localized)" />
+                <DataGridTextColumn
+                    Width="*"
+                    Binding="{lx:LocalizedBinding Source={x:Static keys:ResourcesKeys.ResxSource},
+                                                  KeyPrefix=Feature_,
+                                                  KeyBinding={Binding FeatureSuffix}}"
+                    Header="Feature (localized)" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Button
+            HorizontalAlignment="Left"
+            Command="{Binding GoBackCommand}"
+            Content="Go Back" />
+    </StackPanel>
+</Page>

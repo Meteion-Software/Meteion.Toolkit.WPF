@@ -98,6 +98,13 @@ public partial class HomePageViewModel : INotifyPropertyChanged
     [RelayCommand]
     public Task NavigateToSecondPage() => _navService.NavigateTo<SecondPageViewModel>();
 
+    /// <summary>
+    /// Navigates to the LocalizedBinding example, a DataGrid column localized via
+    /// {lx:LocalizedBinding}.
+    /// </summary>
+    [RelayCommand]
+    public Task NavigateToLocalizedBindingPage() => _navService.NavigateTo<LocalizedBindingPageViewModel>();
+
     [RelayCommand]
     public void SwitchLanguage()
     {

@@ -1,5 +1,4 @@
 ﻿using Meteion.Toolkit.Localization.Abstractions;
-using Microsoft.Extensions.Options;
 using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
@@ -160,10 +159,7 @@ public class LocalizedValueExtension : MarkupExtension
 
     /// <summary>
     /// Builds the <see cref="LocalizationRequest"/> both the literal <see cref="Key"/> and the
-    /// <see cref="KeyBinding"/> paths resolve through. The context assembly is resolved eagerly,
-    /// while the XAML service provider is still valid, but a failure is only surfaced if an
-    /// unqualified key without a <see cref="Source"/> actually needs it - a qualified key names
-    /// its own assembly.
+    /// <see cref="KeyBinding"/> paths resolve through - see <see cref="LocalizationRequest.Create"/>.
     /// </summary>
     private LocalizationRequest CreateRequest(IServiceProvider serviceProvider)
     {
@@ -174,28 +170,7 @@ public class LocalizedValueExtension : MarkupExtension
                 $"Source '{Source}' already names its assembly.");
         }
 
-        var loc = LocalizationServiceLocator.Resolve<ILocalizationService>();
-
-        Assembly? contextAssembly = null;
-        Exception? contextAssemblyError = null;
-        if (Source is null)
-        {
-            try
-            {
-                contextAssembly = LocalizationServiceLocator.Resolve<IResourceAssemblyResolver>().Resolve(Assembly, serviceProvider);
-            }
-            catch (LocalizationConfigurationException ex)
-            {
-                contextAssemblyError = ex;
-            }
-        }
-
-        // Options are registered by AddWpfLocalization; fall back to their defaults when a host
-        // (or a test) wires up the services without them.
-        var missingKeyBehavior = LocalizationServiceLocator.TryResolve<IOptions<LocalizationOptions>>()?.Value.MissingKeyBehavior
-            ?? new LocalizationOptions().MissingKeyBehavior;
-
-        return new LocalizationRequest(loc, contextAssembly, Source, KeyPrefix, Assembly, contextAssemblyError, missingKeyBehavior);
+        return LocalizationRequest.Create(Source, Assembly, KeyPrefix, serviceProvider);
     }
 }
 
