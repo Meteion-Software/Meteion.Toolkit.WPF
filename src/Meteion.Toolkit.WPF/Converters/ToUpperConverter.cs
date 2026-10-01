@@ -7,6 +7,8 @@ namespace Meteion.Toolkit.WPF.Converters;
 [ValueConversion(typeof(string), typeof(string))]
 public sealed class ToUpperConverter : IValueConverter
 {
+    public static readonly ToUpperConverter Instance = new();
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is string str)

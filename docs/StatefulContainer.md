@@ -40,12 +40,12 @@ public sealed class OrdersViewModel : IStatefulViewModel, IAsyncNavigationAwareV
 ```
 
 ```xaml
-<meteion:StatefulContainer State="{Binding State}" RetryCommand="{Binding ReloadCommand}">
+<mtk:StatefulContainer State="{Binding State}" RetryCommand="{Binding ReloadCommand}">
     <DataGrid ItemsSource="{Binding Orders}" />
-</meteion:StatefulContainer>
+</mtk:StatefulContainer>
 ```
 
-`meteion` is `xmlns:meteion="http://wpf.meteion.ca/winfx/xaml"`.
+`mtk` is `xmlns:mtk="http://wpf.meteion.ca/winfx/xaml"`.
 
 ## ViewState
 
@@ -101,9 +101,9 @@ The control itself binds to `IViewState`, so a plain `ViewState` property works 
 Use `Overlay` for refreshing in place or for a shell like a navigation `Frame`:
 
 ```xaml
-<meteion:StatefulContainer Mode="Overlay" State="{Binding NavigationState}">
+<mtk:StatefulContainer Mode="Overlay" State="{Binding NavigationState}">
     <Frame x:Name="ShellFrame" NavigationUIVisibility="Hidden" />
-</meteion:StatefulContainer>
+</mtk:StatefulContainer>
 ```
 
 Keyboard focus that is already inside the content when the overlay appears is not moved.
@@ -115,7 +115,7 @@ The Retry button is opt-in: it appears in the default error panel only when `Ret
 to reload — point the command at your view model's load method.
 
 ```xaml
-<meteion:StatefulContainer
+<mtk:StatefulContainer
     State="{Binding State}"
     RetryCommand="{Binding ReloadCommand}"
     RetryContent="Try again"
@@ -135,8 +135,8 @@ to reload — point the command at your view model's load method.
 To use a custom error panel with your own retry button, bind to the state and your view model:
 
 ```xaml
-<meteion:StatefulContainer State="{Binding State}">
-    <meteion:StatefulContainer.ErrorTemplate>
+<mtk:StatefulContainer State="{Binding State}">
+    <mtk:StatefulContainer.ErrorTemplate>
         <DataTemplate>
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock Text="{Binding ErrorMessage}" />
@@ -144,10 +144,59 @@ To use a custom error panel with your own retry button, bind to the state and yo
                         Content="Reload" />
             </StackPanel>
         </DataTemplate>
-    </meteion:StatefulContainer.ErrorTemplate>
+    </mtk:StatefulContainer.ErrorTemplate>
     ...
-</meteion:StatefulContainer>
+</mtk:StatefulContainer>
 ```
+
+## Changing the templates application-wide
+
+The default loading and error visuals are applied by the control's default style, so to change them
+everywhere, override that style once in `App.xaml` rather than setting `LoadingTemplate` /
+`ErrorTemplate` on every container. Declare an implicit style (no `x:Key`) based on the default one:
+
+```xaml
+<Application xmlns:mtk="http://wpf.meteion.ca/winfx/xaml" ...>
+    <Application.Resources>
+        <DataTemplate x:Key="App.LoadingTemplate">
+            <ProgressBar IsIndeterminate="True" Width="200" Height="6"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </DataTemplate>
+
+        <DataTemplate x:Key="App.ErrorTemplate">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+                <Button Content="{Binding RetryContent, RelativeSource={RelativeSource AncestorType=mtk:StatefulContainer}}"
+                        Command="{Binding RetryCommand, RelativeSource={RelativeSource AncestorType=mtk:StatefulContainer}}"
+                        CommandParameter="{Binding RetryCommandParameter, RelativeSource={RelativeSource AncestorType=mtk:StatefulContainer}}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <Style TargetType="mtk:StatefulContainer"
+               BasedOn="{StaticResource {x:Type mtk:StatefulContainer}}">
+            <Setter Property="LoadingTemplate" Value="{StaticResource App.LoadingTemplate}" />
+            <Setter Property="ErrorTemplate" Value="{StaticResource App.ErrorTemplate}" />
+        </Style>
+    </Application.Resources>
+</Application>
+```
+
+Things to know:
+
+- **Keep `BasedOn`.** An implicit style replaces the toolkit's default style entirely. Without
+  `BasedOn`, the control loses its template (`PART_Content`, `PART_StateLayer`, `PART_StateHost`) and
+  renders nothing.
+- You can set just one of the two; the other keeps the toolkit default.
+- Inside the templates, `DataContext` is the `IViewState`, so bind `ErrorMessage`, `Exception` and
+  `Status` directly. Properties of the container itself (`RetryCommand`, `RetryContent`, `ErrorTitle`, ...)
+  are reached with `RelativeSource AncestorType=mtk:StatefulContainer`, as above, which keeps the
+  per-container Retry wiring working with your app-wide template.
+- A container that sets `LoadingTemplate` / `ErrorTemplate` locally still wins over the app-wide style,
+  so individual screens can opt out.
+- To scope the change to part of the app, put the same style in a window's, page's or panel's
+  `Resources` instead of `App.xaml`.
+- To change a whole look (including the overlay layer), restyle with a custom `Template` in the same
+  style; see the part names under [Customizing](#customizing).
 
 ## Performance notes
 

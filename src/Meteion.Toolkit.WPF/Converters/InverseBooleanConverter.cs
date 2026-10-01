@@ -9,7 +9,7 @@ namespace Meteion.Toolkit.WPF.Converters;
 [ValueConversion(typeof(bool), typeof(bool))]
 public sealed class InverseBooleanConverter : IValueConverter
 {
-    public static readonly InverseBooleanToVisibilityConverter Instance = new();
+    public static readonly InverseBooleanConverter Instance = new();
 
     public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
     {

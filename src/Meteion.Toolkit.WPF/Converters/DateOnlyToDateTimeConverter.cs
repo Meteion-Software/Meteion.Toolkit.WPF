@@ -9,9 +9,9 @@ namespace Meteion.Toolkit.WPF.Converters;
 /// </summary>
 [ValueConversion(typeof(DateOnly), typeof(DateTime))]
 [ValueConversion(typeof(DateTime), typeof(DateOnly))]
-public class DateOnlyDateTimeConverter : IValueConverter
+public class DateOnlyToDateTimeConverter : IValueConverter
 {
-    public static DateOnlyDateTimeConverter Instance { get; } = new DateOnlyDateTimeConverter();
+    public static DateOnlyToDateTimeConverter Instance { get; } = new DateOnlyToDateTimeConverter();
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {

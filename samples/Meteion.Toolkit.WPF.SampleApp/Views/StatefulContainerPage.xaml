@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:meteion="http://wpf.meteion.ca/winfx/xaml"
+    xmlns:mtk="http://wpf.meteion.ca/winfx/xaml"
     xmlns:viewmodels="clr-namespace:Meteion.Toolkit.WPF.SampleApp.ViewModels"
     Title="StatefulContainer"
     d:DataContext="{d:DesignInstance Type=viewmodels:StatefulContainerPageViewModel}"
@@ -37,28 +37,28 @@
 
         <UniformGrid Grid.Row="1" Columns="3">
             <GroupBox Margin="0,0,5,0" Header="Replace (default, no Retry button)">
-                <meteion:StatefulContainer State="{Binding State}">
+                <mtk:StatefulContainer State="{Binding State}">
                     <TextBlock Text="{Binding Result}" />
-                </meteion:StatefulContainer>
+                </mtk:StatefulContainer>
             </GroupBox>
 
             <GroupBox Margin="0,0,5,0" Header="Overlay + Retry">
-                <meteion:StatefulContainer
+                <mtk:StatefulContainer
                     Mode="Overlay"
                     RetryCommand="{Binding LoadCommand}"
                     State="{Binding State}">
                     <TextBlock Text="{Binding Result}" />
-                </meteion:StatefulContainer>
+                </mtk:StatefulContainer>
             </GroupBox>
 
             <GroupBox Header="Custom loading template + Retry">
-                <meteion:StatefulContainer
+                <mtk:StatefulContainer
                     LoadingTemplate="{StaticResource CustomLoadingTemplate}"
                     RetryCommand="{Binding LoadCommand}"
                     RetryContent="Try again"
                     State="{Binding State}">
                     <TextBlock Text="{Binding Result}" />
-                </meteion:StatefulContainer>
+                </mtk:StatefulContainer>
             </GroupBox>
         </UniformGrid>
     </Grid>

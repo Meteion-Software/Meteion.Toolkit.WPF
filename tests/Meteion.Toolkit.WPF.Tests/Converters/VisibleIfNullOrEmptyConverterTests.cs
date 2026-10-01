@@ -21,8 +21,24 @@ public class VisibleIfNullOrEmptyConverterTests
         => Assert.Equal(Visibility.Collapsed, Converter.Convert(new List<string> { "item" }, typeof(Visibility), null!, CultureInfo.InvariantCulture));
 
     [Fact]
-    public void Convert_NonListNonNullValue_ReturnsUnsetValue()
-        => Assert.Equal(DependencyProperty.UnsetValue, Converter.Convert("not a list", typeof(Visibility), null!, CultureInfo.InvariantCulture));
+    public void Convert_EmptyString_ReturnsVisible()
+        => Assert.Equal(Visibility.Visible, Converter.Convert("", typeof(Visibility), null!, CultureInfo.InvariantCulture));
+
+    [Fact]
+    public void Convert_NonEmptyString_ReturnsCollapsed()
+        => Assert.Equal(Visibility.Collapsed, Converter.Convert("text", typeof(Visibility), null!, CultureInfo.InvariantCulture));
+
+    [Fact]
+    public void Convert_EmptyEnumerable_ReturnsVisible()
+        => Assert.Equal(Visibility.Visible, Converter.Convert(Enumerable.Empty<int>(), typeof(Visibility), null!, CultureInfo.InvariantCulture));
+
+    [Fact]
+    public void Convert_NonEmptyEnumerable_ReturnsCollapsed()
+        => Assert.Equal(Visibility.Collapsed, Converter.Convert(Enumerable.Range(0, 3), typeof(Visibility), null!, CultureInfo.InvariantCulture));
+
+    [Fact]
+    public void Convert_NonEnumerableObject_ReturnsCollapsed()
+        => Assert.Equal(Visibility.Collapsed, Converter.Convert(new object(), typeof(Visibility), null!, CultureInfo.InvariantCulture));
 
     [Fact]
     public void ConvertBack_ReturnsUnsetValue()

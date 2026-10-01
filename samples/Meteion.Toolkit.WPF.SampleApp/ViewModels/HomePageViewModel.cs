@@ -105,6 +105,12 @@ public partial class HomePageViewModel : INotifyPropertyChanged
     public Task NavigateToStatefulContainerPage() => _navService.NavigateTo<StatefulContainerPageViewModel>();
 
     /// <summary>
+    /// Navigates to the PlaceholderContainer example (empty list and nothing-selected placeholders).
+    /// </summary>
+    [RelayCommand]
+    public Task NavigateToPlaceholderContainerPage() => _navService.NavigateTo<PlaceholderContainerPageViewModel>();
+
+    /// <summary>
     /// Navigates to the LocalizedBinding example, a DataGrid column localized via
     /// {lx:LocalizedBinding}.
     /// </summary>

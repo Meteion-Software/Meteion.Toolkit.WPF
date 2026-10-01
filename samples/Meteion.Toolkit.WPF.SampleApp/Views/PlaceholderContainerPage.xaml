@@ -1,0 +1,84 @@
+<Page
+    x:Class="Meteion.Toolkit.WPF.SampleApp.Views.PlaceholderContainerPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:mtk="http://wpf.meteion.ca/winfx/xaml"
+    xmlns:viewmodels="clr-namespace:Meteion.Toolkit.WPF.SampleApp.ViewModels"
+    Title="PlaceholderContainer"
+    d:DataContext="{d:DesignInstance Type=viewmodels:PlaceholderContainerPageViewModel}"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <DataTemplate x:Key="NoOrdersTemplate">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="16"
+                Text="No orders yet. Use Add order." />
+        </DataTemplate>
+
+        <DataTemplate x:Key="NothingSelectedTemplate">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="16"
+                Text="Select an order to see its details." />
+        </DataTemplate>
+
+        <DataTemplate x:Key="MaintenanceTemplate">
+            <TextBlock
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="16"
+                Text="Down for maintenance." />
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <Button Margin="0,0,5,10" Command="{Binding AddOrderCommand}" Content="Add order" />
+            <Button Margin="0,0,5,10" Command="{Binding ClearOrdersCommand}" Content="Clear all orders" />
+            <Button Margin="0,0,5,10" Command="{Binding ClearSelectionCommand}" Content="Clear selection" />
+            <Button Margin="0,0,5,10" Command="{Binding GoBackCommand}" Content="Go Back" />
+        </StackPanel>
+
+        <UniformGrid Grid.Row="1" Columns="3">
+            <GroupBox Margin="0,0,5,0" Header="Empty list (Value = the ObservableCollection)">
+                <mtk:PlaceholderContainer PlaceholderTemplate="{StaticResource NoOrdersTemplate}" Value="{Binding Orders}">
+                    <ListBox ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}" />
+                </mtk:PlaceholderContainer>
+            </GroupBox>
+
+            <GroupBox Margin="0,0,5,0" Header="Nothing selected (Value = the selected item)">
+                <mtk:PlaceholderContainer PlaceholderTemplate="{StaticResource NothingSelectedTemplate}" Value="{Binding SelectedOrder}">
+                    <StackPanel>
+                        <TextBlock FontSize="18" Text="{Binding SelectedOrder}" />
+                        <TextBlock Text="Details for the selected order would go here." />
+                    </StackPanel>
+                </mtk:PlaceholderContainer>
+            </GroupBox>
+
+            <GroupBox Header="Bound boolean (ShowPlaceholder)">
+                <DockPanel>
+                    <CheckBox
+                        Margin="0,0,0,5"
+                        Content="Down for maintenance"
+                        DockPanel.Dock="Top"
+                        IsChecked="{Binding IsMaintenance}" />
+                    <mtk:PlaceholderContainer PlaceholderTemplate="{StaticResource MaintenanceTemplate}" ShowPlaceholder="{Binding IsMaintenance}">
+                        <TextBlock Text="Everything is running normally." />
+                    </mtk:PlaceholderContainer>
+                </DockPanel>
+            </GroupBox>
+        </UniformGrid>
+    </Grid>
+</Page>

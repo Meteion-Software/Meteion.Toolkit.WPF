@@ -37,10 +37,10 @@ checking for `INavigationProgress` on the resolved instance. Drive a [`StatefulC
 in `Overlay` mode from them with a `ViewState` owned by the window:
 
 ```xaml
-<Grid xmlns:meteion="http://wpf.meteion.ca/winfx/xaml">
-    <meteion:StatefulContainer Mode="Overlay" State="{Binding NavigationState, RelativeSource={RelativeSource AncestorType=Window}}">
+<Grid xmlns:mtk="http://wpf.meteion.ca/winfx/xaml">
+    <mtk:StatefulContainer Mode="Overlay" State="{Binding NavigationState, RelativeSource={RelativeSource AncestorType=Window}}">
         <Frame x:Name="ShellFrame" NavigationUIVisibility="Hidden" />
-    </meteion:StatefulContainer>
+    </mtk:StatefulContainer>
 </Grid>
 ```
 
@@ -77,7 +77,7 @@ navProgress.NavigationIndicatorDelay = TimeSpan.FromMilliseconds(400);
 
 `BusyOverlay` has been removed in favour of [`StatefulContainer`](StatefulContainer.md), which does
 the same dim-and-spinner job in `Overlay` mode and also covers loading/error states for ordinary
-content. Replace `<meteion:BusyOverlay x:Name="..."/>` (placed next to the content) with a
+content. Replace `<mtk:BusyOverlay x:Name="..."/>` (placed next to the content) with a
 `StatefulContainer` wrapping that content, and replace `overlay.IsBusy = true/false` with
 `state.SetLoading()` / `state.SetLoaded()`.
 

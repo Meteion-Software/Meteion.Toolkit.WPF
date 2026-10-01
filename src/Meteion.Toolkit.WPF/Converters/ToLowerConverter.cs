@@ -10,6 +10,8 @@ namespace Meteion.Toolkit.WPF.Converters;
 [ValueConversion(typeof(string), typeof(string))]
 public sealed class ToLowerConverter : IValueConverter
 {
+    public static readonly ToLowerConverter Instance = new();
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is string str)

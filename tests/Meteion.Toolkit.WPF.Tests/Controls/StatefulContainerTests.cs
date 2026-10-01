@@ -227,8 +227,11 @@ public class StatefulContainerTests
 
         container.State = second;
 
+        // A hand-raised Loaded does not set IsLoaded, so the swap itself does not re-subscribe.
         Assert.Equal(0, first.SubscriberCount);
         Assert.Equal(Visibility.Collapsed, Content(container).Visibility);
+        RaiseLoaded(container);
+        Assert.Equal(1, second.SubscriberCount);
     }
 
     [StaFact]

@@ -43,15 +43,15 @@ It is important you override to call InitializeComponent.
 
 Next modify App.xaml:
 ```xaml
-<meteion:WpfGenericHostApplication x:Class="Meteion.Toolkit.WPF.SampleApp.App"
+<mtk:WpfGenericHostApplication x:Class="Meteion.Toolkit.WPF.SampleApp.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Meteion.Toolkit.WPF.SampleApp"
-             xmlns:meteion="http://wpf.meteion.ca/winfx/xaml">
-    <meteion:WpfGenericHostApplication.Resources>
+             xmlns:mtk="http://wpf.meteion.ca/winfx/xaml">
+    <mtk:WpfGenericHostApplication.Resources>
          
-    </meteion:WpfGenericHostApplication.Resources>
-</meteion:WpfGenericHostApplication>
+    </mtk:WpfGenericHostApplication.Resources>
+</mtk:WpfGenericHostApplication>
 
 ```
 

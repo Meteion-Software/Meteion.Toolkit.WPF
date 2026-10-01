@@ -4,9 +4,9 @@ using System.Windows;
 
 namespace Meteion.Toolkit.WPF.Tests.Converters;
 
-public class DateOnlyDateTimeConverterTests
+public class DateOnlyToDateTimeConverterTests
 {
-    private static readonly DateOnlyDateTimeConverter Converter = new();
+    private static readonly DateOnlyToDateTimeConverter Converter = new();
 
     [Fact]
     public void Convert_DateOnly_ReturnsDateTimeAtMidnight()
