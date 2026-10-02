@@ -9,7 +9,7 @@ namespace Meteion.Toolkit.WPF.Localization;
 /// Static convenience facade for retrieving localized strings from non-DI contexts
 /// (value converters, static helpers) where constructor-injecting ILocalizationService
 /// isn't possible. Routes through the same LocalizationServiceLocator seam
-/// ToolkitLocalizationExtension uses. Call this directly — wrapping it in your own
+/// LocalizedValueExtension uses. Call this directly — wrapping it in your own
 /// helper method breaks the calling-assembly inference below.
 ///
 /// Prefer constructor-injecting ILocalizationService wherever DI is available;
@@ -22,6 +22,9 @@ public static class ToolkitLocalizer
     /// its own assembly and resx; an unqualified key resolves against
     /// <paramref name="resourceAssembly"/>, or the calling assembly, when not given.
     /// </summary>
+    /// <param name="key">The resource key, qualified or unqualified.</param>
+    /// <param name="resourceAssembly">The assembly an unqualified key resolves against; defaults to the caller.</param>
+    /// <returns>The localized string for <see cref="CurrentCulture"/>.</returns>
     public static string Get(string key, Assembly? resourceAssembly = null)
     {
         var loc = LocalizationServiceLocator.Resolve<ILocalizationService>();
@@ -37,9 +40,16 @@ public static class ToolkitLocalizer
     /// Resolves an unqualified <paramref name="key"/> from the resx named by <paramref name="source"/>
     /// (e.g. a generated keys class's <c>ResxSource</c> constant).
     /// </summary>
+    /// <param name="key">The unqualified resource key.</param>
+    /// <param name="source">The resx identity, <c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;</c>.</param>
+    /// <returns>The localized string for <see cref="CurrentCulture"/>.</returns>
     public static string Get(string key, string source)
         => LocalizationServiceLocator.Resolve<ILocalizationService>().GetString(key, source);
 
+    /// <summary>
+    /// The active localization culture. Setting it switches the app language and notifies
+    /// everything bound to localized values.
+    /// </summary>
     public static CultureInfo CurrentCulture
     {
         get => LocalizationServiceLocator.Resolve<ILocalizationService>().CurrentCulture;

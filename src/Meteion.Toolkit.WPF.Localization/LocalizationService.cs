@@ -8,12 +8,22 @@ using System.Windows;
 
 namespace Meteion.Toolkit.WPF.Localization;
 
+/// <summary>
+/// Default <see cref="ILocalizationService"/>: tracks the active culture, keeps ambient WPF/.NET
+/// culture settings in step with it, and looks strings up through an
+/// <see cref="ILocalizationProvider"/>, applying the configured missing-key behavior.
+/// </summary>
 internal sealed class LocalizationService : ILocalizationService
 {
     private readonly ILocalizationProvider _provider;
     private readonly LocalizationOptions _options;
     private CultureInfo _currentCulture;
 
+    /// <summary>
+    /// Creates the service and applies the starting culture.
+    /// </summary>
+    /// <param name="provider">The provider that reads localized strings from resources.</param>
+    /// <param name="options">Options supplying the default culture, assembly and missing-key behavior.</param>
     public LocalizationService(ILocalizationProvider provider, IOptions<LocalizationOptions> options)
     {
         _provider = provider;
@@ -26,6 +36,7 @@ internal sealed class LocalizationService : ILocalizationService
         SyncAmbientCulture(_currentCulture);
     }
 
+    /// <inheritdoc />
     public CultureInfo CurrentCulture
     {
         get => _currentCulture;
@@ -53,6 +64,7 @@ internal sealed class LocalizationService : ILocalizationService
     /// culture from there, not from <see cref="CultureInfo.CurrentCulture"/>.</description></item>
     /// </list>
     /// </summary>
+    /// <param name="culture">The culture to apply.</param>
     private static void SyncAmbientCulture(CultureInfo culture)
     {
         CultureInfo.CurrentCulture = culture;
@@ -60,9 +72,13 @@ internal sealed class LocalizationService : ILocalizationService
         FrameworkLanguageSynchronizer.Sync(culture);
     }
 
+    /// <inheritdoc />
     public event EventHandler<CultureChangedEventArgs>? CultureChanged;
+
+    /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <inheritdoc />
     public string GetString(string key)
     {
         var parsed = LocalizationKey.Parse(key);
@@ -78,6 +94,7 @@ internal sealed class LocalizationService : ILocalizationService
         return Lookup(parsed, assembly);
     }
 
+    /// <inheritdoc />
     public string GetString(string key, Assembly resourceAssembly)
     {
         ArgumentNullException.ThrowIfNull(resourceAssembly);
@@ -92,12 +109,14 @@ internal sealed class LocalizationService : ILocalizationService
         return Lookup(parsed, resourceAssembly);
     }
 
+    /// <inheritdoc />
     public string GetString(string key, string source)
     {
         var parsed = LocalizationKey.FromSource(source, key);
         return Lookup(parsed, ResourceAssemblyLocator.Find(parsed.AssemblyName!));
     }
 
+    // Looks the key up in the given assembly; a miss is traced and handled per MissingKeyBehavior.
     private string Lookup(LocalizationKey key, Assembly assembly)
     {
         var value = _provider.GetLocalizedString(key, assembly, CurrentCulture);

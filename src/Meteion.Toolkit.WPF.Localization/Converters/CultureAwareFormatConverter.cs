@@ -38,6 +38,11 @@ public class CultureAwareFormatConverter : IValueConverter, IMultiValueConverter
     {
     }
 
+    /// <summary>
+    /// Creates a converter bound to a specific service, bypassing the service locator.
+    /// </summary>
+    /// <param name="service">The service supplying the current culture.</param>
+    /// <param name="formatString">The default format string, or <see langword="null"/> for the type's default.</param>
     internal CultureAwareFormatConverter(ILocalizationService service, string? formatString = null)
     {
         _service = service;
@@ -52,9 +57,31 @@ public class CultureAwareFormatConverter : IValueConverter, IMultiValueConverter
 
     private ILocalizationService Service => _service ?? LocalizationServiceLocator.Resolve<ILocalizationService>();
 
+    /// <summary>
+    /// Formats <paramref name="value"/> using the service's current culture.
+    /// </summary>
+    /// <param name="value">The value to format.</param>
+    /// <param name="targetType">Ignored.</param>
+    /// <param name="parameter">A format string that overrides <see cref="FormatString"/> when it is a string.</param>
+    /// <param name="culture">Ignored; the localization service's culture is used instead.</param>
+    /// <returns>
+    /// The formatted text, or <see cref="DependencyProperty.UnsetValue"/> when
+    /// <paramref name="value"/> is not <see cref="IFormattable"/>.
+    /// </returns>
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
         Format(value, parameter as string ?? FormatString);
 
+    /// <summary>
+    /// Formats the first element of <paramref name="values"/> using the service's current culture.
+    /// </summary>
+    /// <param name="values">The bound values; only the first is formatted, the rest are change triggers.</param>
+    /// <param name="targetType">Ignored.</param>
+    /// <param name="parameter">A format string that overrides <see cref="FormatString"/> when it is a string.</param>
+    /// <param name="culture">Ignored; the localization service's culture is used instead.</param>
+    /// <returns>
+    /// The formatted text, or <see cref="DependencyProperty.UnsetValue"/> when the first value is
+    /// missing or not <see cref="IFormattable"/>.
+    /// </returns>
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) =>
         Format(values.Length > 0 ? values[0] : null, parameter as string ?? FormatString);
 
@@ -63,9 +90,23 @@ public class CultureAwareFormatConverter : IValueConverter, IMultiValueConverter
             ? formattable.ToString(format, Service.CurrentCulture)
             : DependencyProperty.UnsetValue;
 
+    /// <summary>Not supported; this converter is one-way.</summary>
+    /// <param name="value">Unused.</param>
+    /// <param name="targetType">Unused.</param>
+    /// <param name="parameter">Unused.</param>
+    /// <param name="culture">Unused.</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="NotSupportedException">Always thrown.</exception>
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
         throw new NotSupportedException($"{nameof(CultureAwareFormatConverter)} only supports one-way binding.");
 
+    /// <summary>Not supported; this converter is one-way.</summary>
+    /// <param name="value">Unused.</param>
+    /// <param name="targetTypes">Unused.</param>
+    /// <param name="parameter">Unused.</param>
+    /// <param name="culture">Unused.</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="NotSupportedException">Always thrown.</exception>
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
         throw new NotSupportedException($"{nameof(CultureAwareFormatConverter)} only supports one-way binding.");
 }

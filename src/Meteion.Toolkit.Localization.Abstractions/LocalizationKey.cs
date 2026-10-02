@@ -14,7 +14,10 @@ namespace Meteion.Toolkit.Localization.Abstractions;
 /// </remarks>
 public readonly record struct LocalizationKey
 {
+    /// <summary>Separates the assembly name from the resource base name in a qualified key.</summary>
     public const char AssemblySeparator = '/';
+
+    /// <summary>Separates the resx identity from the raw key name in a qualified key.</summary>
     public const char KeySeparator = ':';
 
     private LocalizationKey(string? assemblyName, string? baseName, string key)
@@ -33,6 +36,7 @@ public readonly record struct LocalizationKey
     /// <summary>The raw resx key name.</summary>
     public string Key { get; }
 
+    /// <summary>True when the key names its own assembly and resx.</summary>
     public bool IsQualified => AssemblyName is not null;
 
     /// <summary>
@@ -41,6 +45,13 @@ public readonly record struct LocalizationKey
     /// </summary>
     public string? Source => IsQualified ? AssemblyName + AssemblySeparator + BaseName : null;
 
+    /// <summary>
+    /// Creates a qualified key.
+    /// </summary>
+    /// <param name="assemblyName">The assembly's simple name. Must not be null or empty.</param>
+    /// <param name="baseName">The resx's manifest resource base name. Must not be null or empty.</param>
+    /// <param name="key">The raw resx key name. Must not be null.</param>
+    /// <returns>A qualified <see cref="LocalizationKey"/>.</returns>
     public static LocalizationKey Qualified(string assemblyName, string baseName, string key)
     {
         ArgumentException.ThrowIfNullOrEmpty(assemblyName);
@@ -49,6 +60,11 @@ public readonly record struct LocalizationKey
         return new LocalizationKey(assemblyName, baseName, key);
     }
 
+    /// <summary>
+    /// Creates an unqualified key, resolved against a caller-supplied assembly or source.
+    /// </summary>
+    /// <param name="key">The raw resx key name. Must not be null.</param>
+    /// <returns>An unqualified <see cref="LocalizationKey"/>.</returns>
     public static LocalizationKey Unqualified(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -60,6 +76,8 @@ public readonly record struct LocalizationKey
     /// <c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;:&lt;Key&gt;</c> shape, otherwise as an
     /// unqualified key. Never throws for a non-null input.
     /// </summary>
+    /// <param name="key">The key text to parse.</param>
+    /// <returns>The parsed <see cref="LocalizationKey"/>.</returns>
     public static LocalizationKey Parse(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -73,6 +91,10 @@ public readonly record struct LocalizationKey
     /// Parses a <c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;</c> resx identity (a generated
     /// <c>ResxSource</c> constant, or <c>LocalizedValueExtension.Source</c>).
     /// </summary>
+    /// <param name="source">The resx identity text to parse.</param>
+    /// <param name="assemblyName">When this method returns true, the assembly's simple name.</param>
+    /// <param name="baseName">When this method returns true, the resx's manifest resource base name.</param>
+    /// <returns>True if <paramref name="source"/> is a valid resx identity; otherwise false.</returns>
     public static bool TryParseSource(string? source, out string assemblyName, out string baseName)
         => ResxNaming.TryParseSource(source, out assemblyName, out baseName);
 
@@ -80,6 +102,9 @@ public readonly record struct LocalizationKey
     /// Qualifies an unqualified <paramref name="key"/> with a <c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;</c>
     /// <paramref name="source"/>.
     /// </summary>
+    /// <param name="source">The <c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;</c> resx identity.</param>
+    /// <param name="key">The unqualified key name.</param>
+    /// <returns>A qualified <see cref="LocalizationKey"/> for <paramref name="key"/> in <paramref name="source"/>.</returns>
     /// <exception cref="LocalizationConfigurationException"><paramref name="source"/> isn't a valid source, or <paramref name="key"/> is already qualified.</exception>
     public static LocalizationKey FromSource(string source, string key)
     {
@@ -101,5 +126,9 @@ public readonly record struct LocalizationKey
         return new LocalizationKey(assemblyName, baseName, key);
     }
 
+    /// <summary>
+    /// Formats the key back to its text form: qualified as <c>&lt;Source&gt;:&lt;Key&gt;</c>, otherwise the bare key.
+    /// </summary>
+    /// <returns>The key text.</returns>
     public override string ToString() => IsQualified ? Source + KeySeparator + Key : Key;
 }

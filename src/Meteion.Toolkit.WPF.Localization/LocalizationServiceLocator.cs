@@ -21,7 +21,13 @@ internal static class LocalizationServiceLocator
             $"doesn't implement {nameof(IServiceProviderApplication)}. Derive from WpfGenericHostApplication, " +
             $"or implement {nameof(IServiceProviderApplication)} on your Application.");
 
+    /// <summary>Gets a required service from the application's service provider.</summary>
+    /// <typeparam name="T">The service type to resolve.</typeparam>
+    /// <returns>The resolved service.</returns>
     public static T Resolve<T>() where T : notnull => ServiceProviderAccessor().GetRequiredService<T>();
 
+    /// <summary>Gets an optional service from the application's service provider.</summary>
+    /// <typeparam name="T">The service type to resolve.</typeparam>
+    /// <returns>The resolved service, or <see langword="null"/> when it isn't registered.</returns>
     public static T? TryResolve<T>() where T : class => ServiceProviderAccessor().GetService<T>();
 }

@@ -29,10 +29,18 @@ internal static class XamlLiteralChecker
         "ContentControl",
     };
 
+    /// <summary>Matches the text of a <c>loc-ignore</c> comment, capturing the optional reason after the colon.</summary>
     private static readonly Regex IgnorePattern = new(
         @"^\s*loc-ignore\b\s*(?::\s*(?<reason>.*?))?\s*$",
         RegexOptions.Compiled | RegexOptions.Singleline);
 
+    /// <summary>
+    /// Scans one XAML file for un-localized literals (LOC009) and <c>loc-ignore</c> comments without a
+    /// reason (LOC010).
+    /// </summary>
+    /// <param name="xamlPath">Path of the XAML file to scan.</param>
+    /// <param name="options">Supplies any extra property names to check beyond the built-in list.</param>
+    /// <returns>The issues found; empty if the file can't be read or isn't well-formed XML.</returns>
     public static IEnumerable<LocalizationKeyUsageIssue> Check(string xamlPath, LocalizationCheckOptions options)
     {
         XDocument document;

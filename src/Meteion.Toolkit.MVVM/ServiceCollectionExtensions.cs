@@ -11,13 +11,23 @@ using System.Windows.Controls;
 namespace Meteion.Toolkit.WPF.MVVM;
 
 /// <summary>
-/// Handles extension methods for the <see cref="IServiceCollection"/> interface, which is used to register services for dependency injection in a .NET application. This class provides methods to add services to the service collection, allowing for easy configuration of dependencies in an application.
+/// Extension methods that register the page and window resolution services, and their views and view models,
+/// with an <see cref="IServiceCollection"/>.
 /// </summary>
 public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Configure the default <see cref="PageResolutionService"/>. Registers all pages and view models into the application service collection.
     /// </summary>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="viewsBuilder">Callback that declares the page and view model mappings.</param>
+    /// <returns>The same service collection, for chaining.</returns>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="viewsBuilder">Callback that declares the page and view model mappings.</param>
+    /// <returns>The same service collection, for chaining.</returns>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="viewsBuilder">Callback that declares the page and view model mappings.</param>
+    /// <returns>The same service collection, for chaining.</returns>
     public static IServiceCollection UseDefaultPageResolutionService(this IServiceCollection services, Action<ViewModelViewDictionaryBuilder<Page>> viewsBuilder)
     {
         var builder = new ViewModelViewDictionaryBuilder<Page>();
@@ -44,6 +54,15 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Configure the default <see cref="WindowResolutionService"/>. Registers all windows and view models into the application service collection.
     /// </summary>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="viewsBuilder">Callback that declares the window and view model mappings.</param>
+    /// <returns>The same service collection, for chaining.</returns>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="viewsBuilder">Callback that declares the window and view model mappings.</param>
+    /// <returns>The same service collection, for chaining.</returns>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="viewsBuilder">Callback that declares the window and view model mappings.</param>
+    /// <returns>The same service collection, for chaining.</returns>
     public static IServiceCollection UseDefaultWindowResolutionService(this IServiceCollection services, Action<ViewModelViewDictionaryBuilder<Window>> viewsBuilder)
     {
         var builder = new ViewModelViewDictionaryBuilder<Window>();

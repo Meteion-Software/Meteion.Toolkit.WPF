@@ -11,8 +11,12 @@ using System.Windows.Controls;
 namespace Meteion.Toolkit.MVVM.Services;
 
 /// <summary>
-/// Implements a default <see cref="INavigationService"/> for frame navigation within a window. This service is responsible for managing navigation between different pages in the application, allowing for navigation to specific view models and handling back navigation.
+/// Implements a default <see cref="INavigationService"/> for frame navigation within a window. It resolves pages from view
+/// model types, invokes the navigation-aware view model callbacks, and reports slow navigations through
+/// <see cref="INavigationProgress"/>.
 /// </summary>
+/// <param name="pageService">Resolves pages and view models from view model types.</param>
+/// <param name="logger">Optional logger for navigation diagnostics.</param>
 public class NavigationService(IPageResolutionService pageService, ILogger<NavigationService>? logger = null) : INavigationService, INavigationProgress
 {
     private readonly IPageResolutionService _pageService = pageService;
@@ -31,21 +35,28 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
     private NavigationDirection _pendingDirection;
     private TaskCompletionSource<bool>? _pendingNavigationTcs;
 
+    /// <inheritdoc />
     public bool CanGoBack => (_frame?.CanGoBack ?? false) && !IsNavigationLocked;
 
+    /// <inheritdoc />
     public bool IsNavigationLocked { get; set; }
 
+    /// <inheritdoc />
     public event EventHandler<NavigationProgressEventArgs>? NavigationStarted;
 
+    /// <inheritdoc />
     public event EventHandler<NavigationProgressEventArgs>? NavigationCompleted;
 
+    /// <inheritdoc />
     public TimeSpan NavigationIndicatorDelay { get; set; } = TimeSpan.FromMilliseconds(200);
 
+    /// <inheritdoc />
     public void CleanNavigation()
     {
         _frame?.CleanNavigation();
     }
 
+    /// <inheritdoc />
     public async Task<bool> GoBack()
     {
         if (!CanGoBack || _frame == null || _navigationInFlight)
@@ -71,8 +82,8 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
     /// Initialize the navigation service with the specified shell frame. 
     /// This method sets up the navigation service to use the provided frame for navigation and subscribes to the Navigated event of the frame.
     /// </summary>
-    /// <param name="shellFrame"></param>
-    /// <exception cref="ArgumentNullException"></exception>
+    /// <param name="shellFrame">The frame to navigate.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="shellFrame"/> is <see langword="null"/>.</exception>
     public void Initialize(Frame shellFrame)
     {
         if (_frame == null)
@@ -92,11 +103,14 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
         }
     }
 
+    /// <inheritdoc />
     public Task<bool> NavigateTo<TViewModel>(object? navigationParameter = null) where TViewModel : INotifyPropertyChanged
     {
         return NavigateTo(typeof(TViewModel), navigationParameter);
     }
 
+    /// <inheritdoc />
+    /// <exception cref="Exception">The service is not initialized, navigation is locked, or another navigation is in flight.</exception>
     public async Task<bool> NavigateTo(Type viewModelType, object? navigationParameter = null)
     {
         // Sanity check we have a frame.
@@ -107,7 +121,7 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
 
         if (IsNavigationLocked)
         {
-            // Throw exception I guess? Implementor should be checking first
+            // Callers are expected to check IsNavigationLocked before navigating.
             throw new Exception("NavigateTo was called but navigation is locked.");
         }
 
@@ -237,6 +251,8 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
         }
     }
 
+    // Runs the leave callbacks on the old view model, then the enter callbacks on the new one. Note the parameter
+    // passed to OnNavigatedTo is the last one used for a forward navigation, including after GoBack.
     private async Task HandlePostNav(object? lastContext, object? currentContext)
     {
         if (lastContext is INavigationAwareViewModel lastNavAware)

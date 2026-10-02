@@ -61,10 +61,19 @@ public class LocalizedBindingExtension : MarkupExtension
     /// </summary>
     public object? TargetNullValue { get; set; } = DependencyProperty.UnsetValue;
 
+    /// <summary>Creates the extension with its properties to be set by the caller.</summary>
     public LocalizedBindingExtension() { }
 
+    /// <summary>Creates the extension for the given key binding.</summary>
+    /// <param name="keyBinding">The binding that supplies the resource key to resolve.</param>
     public LocalizedBindingExtension(BindingBase keyBinding) => KeyBinding = keyBinding;
 
+    /// <summary>
+    /// Builds a one-way multi-binding that localizes the bound key and re-runs on culture changes.
+    /// </summary>
+    /// <param name="serviceProvider">The XAML service provider for the current usage.</param>
+    /// <returns>The binding expression for the target.</returns>
+    /// <exception cref="LocalizationConfigurationException"><see cref="KeyBinding"/> was not set.</exception>
     public override object ProvideValue(IServiceProvider serviceProvider)
     {
         if (KeyBinding == null)

@@ -8,20 +8,25 @@ namespace Meteion.Toolkit.WPF.SplashScreen;
 public interface ISplashScreen : IProgress<SplashProgress>, IDisposable
 {
     /// <summary>Sets the bar to <paramref name="value"/> (0.0–1.0, clamped).</summary>
+    /// <param name="value">The bar fill, from 0.0 (empty) to 1.0 (full).</param>
     void SetProgress(double value);
 
     /// <summary>Switches the bar to indeterminate mode.</summary>
     void SetIndeterminate();
 
     /// <summary>Sets the status text. An empty string clears it.</summary>
+    /// <param name="text">The status text to display.</param>
     void SetStatus(string text);
 
     /// <summary>Sets the bar and the status text together.</summary>
+    /// <param name="value">The bar fill, from 0.0 (empty) to 1.0 (full).</param>
+    /// <param name="text">The status text to display.</param>
     void Report(double value, string text);
 
     /// <summary>
     /// Gracefully closes: honors <see cref="SplashScreenOptions.MinimumDisplayTime"/>, then fades out. Non-blocking;
     /// a second call is a no-op returning the same task. The task completes when the splash thread has exited.
     /// </summary>
+    /// <returns>A task that completes when the splash thread has exited.</returns>
     Task Close();
 }

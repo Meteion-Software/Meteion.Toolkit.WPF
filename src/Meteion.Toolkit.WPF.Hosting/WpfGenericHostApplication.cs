@@ -7,8 +7,13 @@ namespace Meteion.Toolkit.WPF.Hosting
     /// </summary>
     public abstract class WpfGenericHostApplication : Application, IServiceProviderApplication
     {
+        /// <summary>
+        /// The host that owns this application. Assigned by <see cref="WpfApplicationHost"/> before
+        /// <see cref="PerformInitializeComponent"/> is called.
+        /// </summary>
         public WpfApplicationHost Host { get; internal set; }
 
+        /// <inheritdoc />
         IServiceProvider IServiceProviderApplication.Services => Host.Services;
 
         /// <summary>

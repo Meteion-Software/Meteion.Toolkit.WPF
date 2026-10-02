@@ -12,7 +12,10 @@ namespace System.Collections.ObjectModel;
 /// Implementation of a dynamic data collection based on generic Collection&lt;T&gt;,
 /// implementing INotifyCollectionChanged to notify listeners
 /// when items get added, removed or the whole list is refreshed.
+/// Adds bulk operations (add, insert, remove and replace ranges) that raise a single notification per contiguous
+/// change instead of one per item.
 /// </summary>
+/// <typeparam name="T">The type of the items in the collection.</typeparam>
 public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservableRangeCollection<T>
 {
     //------------------------------------------------------
@@ -91,8 +94,8 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
     /// Inserts the elements of a collection into the <see cref="ObservableCollection{T}"/> at the specified index.
     /// </summary>
     /// <param name="index">The zero-based index at which the new elements should be inserted.</param>
-    /// <param name="collection">The collection whose elements should be inserted into the List<T>.
-    /// The collection itself cannot be null, but it can contain elements that are null, if type T is a reference type.</param>                
+    /// <param name="collection">The collection whose elements should be inserted into this collection.
+    /// The collection itself cannot be null, but it can contain elements that are null, if type T is a reference type.</param>
     /// <exception cref="ArgumentNullException"><paramref name="collection"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is not in the collection range.</exception>
     public void InsertRange(int index, IEnumerable<T> collection)
@@ -118,7 +121,8 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
 
         CheckReentrancy();
 
-        //expand the following couple of lines when adding more constructors.
+        // Items is always a List<T> because every constructor builds one, so the bulk insert can be used.
+        // Expand the following couple of lines when adding more constructors.
         var target = (List<T>)Items;
         target.InsertRange(index, collection);
 
@@ -132,7 +136,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
 
 
     /// <summary> 
-    /// Removes the first occurence of each item in the specified collection from the <see cref="ObservableCollection{T}"/>.
+    /// Removes the first occurrence of each item in the specified collection from the <see cref="ObservableCollection{T}"/>.
     /// </summary>
     /// <param name="collection">The items to remove.</param>        
     /// <exception cref="ArgumentNullException"><paramref name="collection"/> is null.</exception>
@@ -164,6 +168,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
 
         CheckReentrancy();
 
+        // Removed items are grouped into clusters of adjacent positions so one Remove event is raised per cluster.
         var clusters = new Dictionary<int, List<T>>();
         var lastIndex = -1;
         List<T> lastCluster = null;
@@ -201,8 +206,8 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
     /// Iterates over the collection and removes all items that satisfy the specified match.
     /// </summary>
     /// <remarks>The complexity is O(n).</remarks>
-    /// <param name="match"></param>
-    /// <returns>Returns the number of elements that where </returns>
+    /// <param name="match">The predicate that selects the items to remove.</param>
+    /// <returns>The number of elements that were removed.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="match"/> is null.</exception>
     public int RemoveAll(Predicate<T> match)
     {
@@ -215,8 +220,8 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
     /// <remarks>The complexity is O(n).</remarks>
     /// <param name="index">The index of where to start performing the search.</param>
     /// <param name="count">The number of items to iterate on.</param>
-    /// <param name="match"></param>
-    /// <returns>Returns the number of elements that where </returns>
+    /// <param name="match">The predicate that selects the items to remove.</param>
+    /// <returns>The number of elements that were removed.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is out of range.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is out of range.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="match"/> is null.</exception>
@@ -243,6 +248,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
         {
             for (var i = 0; i < count; i++, index++)
             {
+                // Removing shifts later items down, so index is decremented below to re-check the same position.
                 T item = Items[index];
                 if (match(item))
                 {
@@ -304,7 +310,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
             return;
         }
 
-        //Items will always be List<T>, see constructors
+        // Items will always be List<T>, see constructors.
         var items = (List<T>)Items;
         List<T> removedItems = items.GetRange(index, count);
 
@@ -412,6 +418,8 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
         using (BlockReentrancy())
         using (DeferEvents())
         {
+            // Phase 1: walk the overlapping positions, swapping changed items in place and batching consecutive
+            // changes into one Replace event. Phase 2 (below) removes or appends whatever length difference remains.
             var rangeCount = index + count;
             var addedCount = list.Count;
 
@@ -424,7 +432,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
             int i = index;
             for (; i < rangeCount && i - index < addedCount; i++)
             {
-                //parallel position
+                // Compare the existing item with the new item at the same relative position.
                 T old = this[i], @new = list[i - index];
                 if (comparer.Equals(old, @new))
                 {
@@ -453,7 +461,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
 
             OnRangeReplaced(i, newCluster, oldCluster);
 
-            //exceeding position
+            // Remaining items: the old range was longer (remove the surplus) or the new collection was longer (append).
             if (count != addedCount)
             {
                 var items = (List<T>)Items;
@@ -498,10 +506,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
 
     #region Protected Methods
 
-    /// <summary>
-    /// Called by base class Collection&lt;T&gt; when the list is being cleared;
-    /// raises a CollectionChanged event to any listeners.
-    /// </summary>
+    /// <inheritdoc />
     protected override void ClearItems()
     {
         if (Count == 0)
@@ -513,10 +518,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
         OnCollectionReset();
     }
 
-    /// <summary>
-    /// Called by base class Collection&lt;T&gt; when an item is set in list;
-    /// raises a CollectionChanged event to any listeners.
-    /// </summary>
+    /// <inheritdoc />
     protected override void SetItem(int index, T item)
     {
         if (Equals(this[index], item))
@@ -530,12 +532,9 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
         OnCollectionChanged(NotifyCollectionChangedAction.Replace, originalItem, item, index);
     }
 
-    /// <summary>
-    /// Raise CollectionChanged event to any listeners.
-    /// Properties/methods modifying this ObservableCollection will raise
-    /// a collection changed event through this virtual method.
-    /// </summary>
+    /// <inheritdoc />
     /// <remarks>
+    /// While events are deferred (see <see cref="DeferEvents"/>) the event is queued instead of raised.
     /// When overriding this method, either call its base implementation
     /// or call <see cref="BlockReentrancy"/> to guard against reentrant collection changes.
     /// </remarks>
@@ -549,6 +548,10 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
         base.OnCollectionChanged(e);
     }
 
+    /// <summary>
+    /// Starts queuing collection change events instead of raising them.
+    /// </summary>
+    /// <returns>A token that raises the queued events, in order, when disposed.</returns>
     protected virtual IDisposable DeferEvents() => new DeferredEventsCollection(this);
 
     #endregion Protected Methods
@@ -566,7 +569,7 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
     /// Helper function to determine if a collection contains any elements.
     /// </summary>
     /// <param name="collection">The collection to evaluate.</param>
-    /// <returns></returns>
+    /// <returns><see langword="true"/> if the collection has at least one element; otherwise <see langword="false"/>.</returns>
     private static bool ContainsAny(IEnumerable<T> collection)
     {
         using (IEnumerator<T> enumerator = collection.GetEnumerator())
@@ -583,8 +586,8 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
     }
 
     /// <summary>
-    /// /// Helper to raise a PropertyChanged event for the Indexer property
-    /// /// </summary>
+    /// Helper to raise a PropertyChanged event for the Indexer property
+    /// </summary>
     private void OnIndexerPropertyChanged() =>
       OnPropertyChanged(EventArgsCache.IndexerPropertyChanged);
 
@@ -601,11 +604,11 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
       OnCollectionChanged(EventArgsCache.ResetCollectionChanged);
 
     /// <summary>
-    /// Helper to raise event for clustered action and clear cluster.
+    /// Helper to raise a Replace event for a block of consecutive replaced items, then clear both clusters.
     /// </summary>
     /// <param name="followingItemIndex">The index of the item following the replacement block.</param>
-    /// <param name="newCluster"></param>
-    /// <param name="oldCluster"></param>
+    /// <param name="newCluster">The items now in the block. Cleared after the event is raised.</param>
+    /// <param name="oldCluster">The items the block replaced. Cleared after the event is raised.</param>
     //TODO should have really been a local method inside ReplaceRange(int index, int count, IEnumerable<T> collection, IEqualityComparer<T> comparer),
     //move when supported language version updated.
     private void OnRangeReplaced(int followingItemIndex, ICollection<T> newCluster, ICollection<T> oldCluster)
@@ -659,6 +662,9 @@ public class ObservableRangeCollection<T> : ObservableCollection<T>, IObservable
 
 }
 
+/// <summary>
+/// Cached event argument instances shared by every <see cref="ObservableRangeCollection{T}"/> closed type.
+/// </summary>
 /// <remarks>
 /// To be kept outside <see cref="ObservableCollection{T}"/>, since otherwise, a new instance will be created for each generic type used.
 /// </remarks>

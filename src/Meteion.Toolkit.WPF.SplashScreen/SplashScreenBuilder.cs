@@ -21,6 +21,8 @@ public sealed class SplashScreenBuilder
     /// (WPF <c>Resource</c> items and pack URIs are not supported). Matches the exact manifest name first, then a
     /// <c>.{fileName}</c> suffix. The last <c>UseImageFrom…</c> call wins.
     /// </summary>
+    /// <param name="fileName">The resource name, or a unique trailing part of it.</param>
+    /// <returns>This builder, for chaining.</returns>
     public SplashScreenBuilder UseImageFromEmbeddedResource(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -31,6 +33,7 @@ public sealed class SplashScreenBuilder
     /// <inheritdoc cref="UseImageFromEmbeddedResource(string)"/>
     /// <param name="fileName">The resource name, or a unique trailing part of it.</param>
     /// <param name="assembly">The assembly holding the resource.</param>
+    /// <returns>This builder, for chaining.</returns>
     public SplashScreenBuilder UseImageFromEmbeddedResource(string fileName, Assembly assembly)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -43,6 +46,8 @@ public sealed class SplashScreenBuilder
     /// Uses a PNG on disk. Relative paths resolve against <see cref="AppContext.BaseDirectory"/>, never the current
     /// working directory. The last <c>UseImageFrom…</c> call wins.
     /// </summary>
+    /// <param name="fileName">The path of the PNG file, absolute or relative to the app's directory.</param>
+    /// <returns>This builder, for chaining.</returns>
     public SplashScreenBuilder UseImageFromFilesystem(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -51,6 +56,8 @@ public sealed class SplashScreenBuilder
     }
 
     /// <summary>Adjusts the options. May be called more than once; delegates run in call order.</summary>
+    /// <param name="configure">A delegate that modifies the options.</param>
+    /// <returns>This builder, for chaining.</returns>
     public SplashScreenBuilder Configure(Action<SplashScreenOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
@@ -59,6 +66,8 @@ public sealed class SplashScreenBuilder
     }
 
     /// <summary>Supplies a logger for failures and warnings when one exists this early.</summary>
+    /// <param name="logger">The logger that receives splash failures and warnings.</param>
+    /// <returns>This builder, for chaining.</returns>
     public SplashScreenBuilder UseLogger(ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
@@ -70,6 +79,7 @@ public sealed class SplashScreenBuilder
     /// Validates the configuration, starts the splash thread and returns immediately. Configuration mistakes throw
     /// from here; anything that fails afterwards is logged and turns the returned handle into a silent no-op.
     /// </summary>
+    /// <returns>A handle used to report progress and to close the splash.</returns>
     /// <exception cref="InvalidOperationException">No image was configured, the image could not be resolved, or this builder has already been shown.</exception>
     /// <exception cref="FileNotFoundException">The file given to <see cref="UseImageFromFilesystem"/> does not exist.</exception>
     public ISplashScreen Show()

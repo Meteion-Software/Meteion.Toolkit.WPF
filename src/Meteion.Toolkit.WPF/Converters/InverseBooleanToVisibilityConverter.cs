@@ -9,8 +9,20 @@ namespace Meteion.Toolkit.WPF.Converters;
 [ValueConversion(typeof(bool), typeof(Visibility))]
 public sealed class InverseBooleanToVisibilityConverter : IValueConverter
 {
+    /// <summary>Gets a shared instance, for use with <c>x:Static</c>.</summary>
     public static readonly InverseBooleanToVisibilityConverter Instance = new();
 
+    /// <summary>
+    /// Converts a boolean to a <see cref="Visibility"/>, inverted.
+    /// </summary>
+    /// <param name="value">The boolean to convert.</param>
+    /// <param name="targetType">The binding target type. Not used.</param>
+    /// <param name="parameter">An optional converter parameter. Not used.</param>
+    /// <param name="culture">The culture of the conversion. Not used.</param>
+    /// <returns>
+    /// <see cref="Visibility.Collapsed"/> for true, <see cref="Visibility.Visible"/> for false, or
+    /// <see cref="DependencyProperty.UnsetValue"/> when the value is not a boolean.
+    /// </returns>
     public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
     {
         if (value is bool b)
@@ -21,6 +33,14 @@ public sealed class InverseBooleanToVisibilityConverter : IValueConverter
         return DependencyProperty.UnsetValue;
     }
 
+    /// <summary>
+    /// Not supported; conversion back is never meaningful for this converter.
+    /// </summary>
+    /// <param name="value">The value produced by the binding target. Not used.</param>
+    /// <param name="targetType">The binding source type. Not used.</param>
+    /// <param name="parameter">An optional converter parameter. Not used.</param>
+    /// <param name="culture">The culture of the conversion. Not used.</param>
+    /// <returns><see cref="DependencyProperty.UnsetValue"/>.</returns>
     public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
     {
         return DependencyProperty.UnsetValue;

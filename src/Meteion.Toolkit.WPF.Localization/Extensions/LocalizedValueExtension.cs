@@ -30,6 +30,11 @@ public class LocalizedValueExtension : MarkupExtension
     /// </summary>
     [TypeConverter(typeof(LocalizationKeyConverter))]
     public string? Key { get; set; }
+
+    /// <summary>
+    /// Optional assembly whose resx unqualified keys resolve against. When not set, it is inferred
+    /// from the XAML context. Can't be combined with <see cref="Source"/>.
+    /// </summary>
     public Assembly? Assembly { get; set; }
 
     /// <summary>
@@ -57,16 +62,31 @@ public class LocalizedValueExtension : MarkupExtension
     /// </summary>
     public string? Source { get; set; }
 
+    /// <summary>Creates the extension for a fixed resource key.</summary>
+    /// <param name="key">The resource key to resolve.</param>
     public LocalizedValueExtension(string key) : this(key, null) { }
 
+    /// <summary>Creates the extension with its properties to be set by the caller.</summary>
     public LocalizedValueExtension() { }
 
+    /// <summary>Creates the extension for a fixed resource key in a specific assembly.</summary>
+    /// <param name="key">The resource key to resolve.</param>
+    /// <param name="assembly">The assembly unqualified keys resolve against, or <see langword="null"/> to infer it.</param>
     public LocalizedValueExtension(string key, Assembly? assembly)
     {
         Key = key;
         Assembly = assembly;
     }
 
+    /// <summary>
+    /// Returns the localized text, or a live binding that keeps it current, depending on what the
+    /// target allows (real element, template placeholder, or plain CLR property).
+    /// </summary>
+    /// <param name="serviceProvider">The XAML service provider for the current usage.</param>
+    /// <returns>The localized text, or a <see cref="BindingBase"/> for a template target.</returns>
+    /// <exception cref="LocalizationConfigurationException">
+    /// The settings are inconsistent, or a <see cref="KeyBinding"/> targets a plain CLR property.
+    /// </exception>
     public override object ProvideValue(IServiceProvider serviceProvider)
     {
         // TODO: make it so we can toggle functionality
@@ -161,6 +181,7 @@ public class LocalizedValueExtension : MarkupExtension
     /// Builds the <see cref="LocalizationRequest"/> both the literal <see cref="Key"/> and the
     /// <see cref="KeyBinding"/> paths resolve through - see <see cref="LocalizationRequest.Create"/>.
     /// </summary>
+    /// <param name="serviceProvider">The XAML service provider used to infer the context assembly.</param>
     private LocalizationRequest CreateRequest(IServiceProvider serviceProvider)
     {
         if (Source is not null && Assembly is not null)
@@ -188,6 +209,14 @@ internal static class LocalizedValueTargetBinder
         DependencyProperty.RegisterAttached("ProxyValue", typeof(string), typeof(LocalizedValueTargetBinder),
             new PropertyMetadata(null, OnProxyValueChanged));
 
+    /// <summary>
+    /// Binds <paramref name="binding"/> to a proxy property on the target, which pushes each new
+    /// value into the real target member.
+    /// </summary>
+    /// <param name="targetObject">The element the markup extension is applied to.</param>
+    /// <param name="realTargetMember">The <see cref="DependencyProperty"/> or <see cref="PropertyInfo"/> to update.</param>
+    /// <param name="binding">The binding that supplies the localized text.</param>
+    /// <returns>The initial localized text, or an empty string if none is available yet.</returns>
     public static string Bind(DependencyObject targetObject, object realTargetMember, Binding binding)
     {
         targetObject.SetValue(RealTargetProperty, realTargetMember);

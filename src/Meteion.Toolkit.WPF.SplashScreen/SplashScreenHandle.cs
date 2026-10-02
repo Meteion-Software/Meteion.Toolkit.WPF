@@ -6,6 +6,12 @@ using Microsoft.Extensions.Logging;
 namespace Meteion.Toolkit.WPF.SplashScreen;
 
 /// <summary>A consistent copy of everything the splash thread needs to know, taken under the handle's lock.</summary>
+/// <param name="Progress">Requested bar fill from 0.0 to 1.0.</param>
+/// <param name="Indeterminate">Whether the bar is in indeterminate mode.</param>
+/// <param name="Status">Requested status text, or <c>null</c> for none.</param>
+/// <param name="Handoff">Whether the splash should go topmost and click-through.</param>
+/// <param name="Close">Whether a graceful close was requested.</param>
+/// <param name="Dispose">Whether an immediate close was requested.</param>
 internal readonly record struct SplashSignals(double Progress, bool Indeterminate, string? Status, bool Handoff, bool Close, bool Dispose);
 
 /// <summary>
@@ -65,6 +71,10 @@ internal sealed class SplashScreenHandle : ISplashScreen
     internal Task Exited => _exited.Task;
 
     /// <summary>Starts the splash thread and returns immediately.</summary>
+    /// <param name="options">Validated splash options.</param>
+    /// <param name="openImage">Opens the PNG stream; called on the splash thread.</param>
+    /// <param name="log">Receives failures and warnings.</param>
+    /// <returns>The handle; if the thread cannot start it is already failed and a silent no-op.</returns>
     internal static SplashScreenHandle Start(SplashScreenOptions options, Func<Stream> openImage, SplashLog log)
     {
         var handle = new SplashScreenHandle(options, openImage, log);
@@ -88,20 +98,27 @@ internal sealed class SplashScreenHandle : ISplashScreen
     }
 
     /// <summary>Attaches the logger the host resolved and flushes any buffered failures to it.</summary>
+    /// <param name="logger">The logger to use from now on.</param>
     internal void AttachLogger(ILogger logger) => Log.Attach(logger);
 
     // ---- ISplashScreen ----
 
+    /// <inheritdoc />
     public void SetProgress(double value) => Report(SplashProgress.Determinate(value));
 
+    /// <inheritdoc />
     public void SetIndeterminate() => Report(SplashProgress.Indeterminate());
 
+    /// <inheritdoc />
     public void SetStatus(string text) => Report(SplashProgress.Status(text));
 
+    /// <inheritdoc />
     public void Report(double value, string text) => Report(SplashProgress.Determinate(value, text));
 
+    /// <inheritdoc cref="IProgress{T}.Report" />
     public void Report(SplashProgress value)
     {
+        // Only the fields the report changes are updated; a burst of reports coalesces into one signal.
         lock (_gate)
         {
             if (_failed || _closeRequested || _disposeRequested)
@@ -140,6 +157,7 @@ internal sealed class SplashScreenHandle : ISplashScreen
         }
     }
 
+    /// <inheritdoc />
     public Task Close()
     {
         lock (_gate)
@@ -159,6 +177,7 @@ internal sealed class SplashScreenHandle : ISplashScreen
         return _exited.Task;
     }
 
+    /// <summary>Closes the splash immediately: skips the minimum display time and the fade-out.</summary>
     public void Dispose()
     {
         lock (_gate)
@@ -192,6 +211,7 @@ internal sealed class SplashScreenHandle : ISplashScreen
     }
 
     /// <summary>Called by the splash thread once its window exists. Anything requested earlier is picked up by <see cref="TakeSignals"/>.</summary>
+    /// <param name="hwnd">The splash window handle that signal messages are posted to.</param>
     internal void AttachWindow(nint hwnd)
     {
         lock (_gate)
@@ -200,6 +220,7 @@ internal sealed class SplashScreenHandle : ISplashScreen
         }
     }
 
+    /// <summary>Called when the splash window is gone; later changes no longer post messages.</summary>
     internal void DetachWindow()
     {
         lock (_gate)
@@ -219,6 +240,7 @@ internal sealed class SplashScreenHandle : ISplashScreen
     }
 
     /// <summary>Records a failure: logs it and turns the handle into a no-op. Safe from any thread.</summary>
+    /// <param name="exception">The exception that caused the failure.</param>
     internal void Fail(Exception exception)
     {
         lock (_gate)
@@ -238,6 +260,7 @@ internal sealed class SplashScreenHandle : ISplashScreen
         }
     }
 
+    // Entry point of the splash thread; runs the window until it closes and always reports the thread as exited.
     private void ThreadMain()
     {
         try

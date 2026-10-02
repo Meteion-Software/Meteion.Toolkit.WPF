@@ -7,6 +7,10 @@ using System.Resources;
 
 namespace Meteion.Toolkit.WPF.Localization;
 
+/// <summary>
+/// <see cref="ILocalizationProvider"/> that reads strings from resx files embedded in an
+/// assembly, through cached <see cref="ResourceManager"/> instances.
+/// </summary>
 internal sealed class ResxLocalizationProvider : ILocalizationProvider
 {
     private const string ResourcesSuffix = ".resources";
@@ -14,6 +18,8 @@ internal sealed class ResxLocalizationProvider : ILocalizationProvider
     // A null base name is the "this assembly's only resx" fallback for unqualified keys.
     private readonly ConcurrentDictionary<(Assembly Assembly, string? BaseName), ResourceManager> _managers = new();
 
+    /// <inheritdoc />
+    /// <exception cref="LocalizationConfigurationException">The named resx isn't embedded in the assembly.</exception>
     public string? GetLocalizedString(LocalizationKey key, Assembly resourceAssembly, CultureInfo culture)
     {
         var manager = GetManager(resourceAssembly, key.BaseName, key);
@@ -31,6 +37,7 @@ internal sealed class ResxLocalizationProvider : ILocalizationProvider
         }
     }
 
+    /// <inheritdoc />
     public IEnumerable<string> GetAvailableKeys(Assembly resourceAssembly)
     {
         var assemblyName = resourceAssembly.GetName().Name!;

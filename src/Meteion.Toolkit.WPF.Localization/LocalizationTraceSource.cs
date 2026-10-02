@@ -21,6 +21,10 @@ namespace Meteion.Toolkit.WPF.Localization;
 /// </remarks>
 internal static class LocalizationTraceSource
 {
+    /// <summary>Traces an error for a key that is absent from its resx.</summary>
+    /// <param name="key">The key text that was looked up.</param>
+    /// <param name="assembly">The assembly whose resources were searched.</param>
+    /// <param name="behavior">The missing-key behavior being applied, included in the message.</param>
     public static void TraceMissingKey(string key, Assembly assembly, MissingResourceBehavior behavior)
     {
         var source = PresentationTraceSources.DataBindingSource;
@@ -35,6 +39,7 @@ internal static class LocalizationTraceSource
             "exists in the resx it names (or the resolved culture's satellite .resx) for that assembly.");
     }
 
+    /// <summary>Traces a warning for a key binding that failed to resolve to any value.</summary>
     public static void TraceUnsetKey()
     {
         var source = PresentationTraceSources.DataBindingSource;
@@ -49,6 +54,8 @@ internal static class LocalizationTraceSource
             "DataContext, or set FallbackValue on it to supply a placeholder key.");
     }
 
+    /// <summary>Traces an error for a key or setup that breaks the localization lookup rules.</summary>
+    /// <param name="message">The description of the configuration problem.</param>
     public static void TraceConfigurationError(string message)
     {
         var source = PresentationTraceSources.DataBindingSource;

@@ -15,6 +15,7 @@ var literalProperties = new List<string>();
 
 for (var i = 0; i < args.Length; i++)
 {
+    // Consumes and returns the argument following the current option.
     string NextValue() => i + 1 < args.Length
         ? args[++i]
         : throw new ArgumentException($"Missing value for '{args[i]}'.");
@@ -68,6 +69,7 @@ var errorCount = 0;
 
 // MSBuild canonical format - Visual Studio's Error List and `dotnet build` both recognize
 // "<origin>: warning|error <code>: <text>" and surface it without any extra parsing.
+// Returns "error" or "warning" for an issue code and counts errors so the exit code can reflect them.
 string Severity(string code)
 {
     if (warningsAsErrors || errorCodes.Contains(code))
@@ -131,4 +133,5 @@ else
         $"meteion-loc-check: {missingKeyCount} missing, {orphanKeyCount} orphaned, {usageIssueCount} XAML usage issue(s) found under '{rootPath}'.");
 }
 
+// Exit codes: 0 = success (warnings only), 1 = at least one issue was reported as an error, 2 = bad command line.
 return errorCount > 0 ? 1 : 0;

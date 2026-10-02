@@ -6,6 +6,11 @@ namespace Meteion.Toolkit.WPF.SplashScreen.Rendering;
 /// Where everything goes, in physical pixels. Computed once from the decoded image's size and the DPI scale;
 /// options that are <c>null</c> are auto-laid-out, and each can be overridden individually.
 /// </summary>
+/// <param name="PixelSize">Size of the whole splash window.</param>
+/// <param name="Bar">Progress bar track rectangle.</param>
+/// <param name="TextRegion">Rectangle the status text is drawn in.</param>
+/// <param name="CornerRadius">Progress bar corner radius.</param>
+/// <param name="FontPixelSize">Font size in pixels.</param>
 internal readonly record struct SplashLayout(Size PixelSize, Rectangle Bar, Rectangle TextRegion, float CornerRadius, float FontPixelSize)
 {
     private const float AutoBarWidthFraction = 0.6f;
@@ -14,9 +19,11 @@ internal readonly record struct SplashLayout(Size PixelSize, Rectangle Bar, Rect
     private const int AutoTextGap = 6;
     private const float LineHeightFactor = 1.4f;
 
+    /// <summary>Resolves auto-layout defaults and scales every rectangle to physical pixels.</summary>
     /// <param name="options">The splash options (values in image pixels).</param>
     /// <param name="imageSize">The decoded image's size in pixels.</param>
     /// <param name="scale">Image pixels to physical pixels (monitor DPI / 96, or 1 when DPI scaling is off).</param>
+    /// <returns>The layout in physical pixels.</returns>
     public static SplashLayout Compute(SplashScreenOptions options, Size imageSize, float scale)
     {
         var barSize = options.ProgressBarSize

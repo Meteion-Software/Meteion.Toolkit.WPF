@@ -7,17 +7,41 @@ namespace Meteion.Toolkit.MVVM.Services;
 /// <summary>
 /// Implements a default <see cref="IPageResolutionService"/>.
 /// </summary>
+/// <param name="serviceProvider">The provider used to resolve pages and view models.</param>
+/// <param name="serviceProvider">The provider used to resolve pages and view models.</param>
+/// <param name="serviceProvider">The provider used to resolve pages and view models.</param>
 public class PageResolutionService(IServiceProvider serviceProvider) : IPageResolutionService
 {
     private readonly ViewModelViewDictionary<Page> _pages = [];
     private readonly IServiceProvider _serviceProvider = serviceProvider;
 
+    /// <summary>
+    /// Creates the service over a pre-built set of page mappings.
+    /// </summary>
+    /// <param name="serviceProvider">The provider used to resolve pages and view models.</param>
+    /// <param name="pages">The existing view model to page mappings.</param>
+    /// <summary>
+    /// Creates the service over a pre-built set of page mappings.
+    /// </summary>
+    /// <param name="serviceProvider">The provider used to resolve pages and view models.</param>
+    /// <param name="pages">The existing view model to page mappings.</param>
+    /// <summary>
+    /// Creates the service over a pre-built set of page mappings.
+    /// </summary>
+    /// <param name="serviceProvider">The provider used to resolve pages and view models.</param>
+    /// <param name="pages">The existing view model to page mappings.</param>
     internal PageResolutionService(IServiceProvider serviceProvider, ViewModelViewDictionary<Page> pages)
         : this(serviceProvider)
     {
         _pages = pages;
     }
 
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">The view model or the page is already registered.</exception>
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">The view model or the page is already registered.</exception>
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">The view model or the page is already registered.</exception>
     public void AddPage<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Transient)
         where T_ViewModel : INotifyPropertyChanged
         where T_View : Page
@@ -55,12 +79,18 @@ public class PageResolutionService(IServiceProvider serviceProvider) : IPageReso
         return pageType.PageType;
     }
 
+    /// <inheritdoc />
+    /// <inheritdoc />
+    /// <inheritdoc />
     public Page GetPageInstance(Type viewModelType)
     {
         var pageType = GetPageFor(viewModelType);
         return _serviceProvider.GetService(pageType) as Page ?? throw new Exception($"Could not create instance of {pageType}.");
     }
 
+    /// <inheritdoc />
+    /// <inheritdoc />
+    /// <inheritdoc />
     public object GetViewModelInstance(Type viewModelType)
     {
         lock (_pages)

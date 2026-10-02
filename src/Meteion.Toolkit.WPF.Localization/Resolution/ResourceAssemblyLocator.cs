@@ -14,6 +14,12 @@ internal static class ResourceAssemblyLocator
 {
     private static readonly ConcurrentDictionary<string, Assembly> Cache = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Finds the assembly with the given simple name, caching the result.
+    /// </summary>
+    /// <param name="assemblyName">The assembly simple name, compared case-insensitively.</param>
+    /// <returns>The matching assembly.</returns>
+    /// <exception cref="LocalizationConfigurationException">The assembly is not loaded and cannot be loaded.</exception>
     public static Assembly Find(string assemblyName) => Cache.GetOrAdd(assemblyName, static name =>
     {
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
@@ -35,6 +41,12 @@ internal static class ResourceAssemblyLocator
         }
     });
 
+    /// <summary>
+    /// Checks whether an assembly's simple name equals <paramref name="assemblyName"/>, ignoring case.
+    /// </summary>
+    /// <param name="assembly">The assembly to test.</param>
+    /// <param name="assemblyName">The expected simple name.</param>
+    /// <returns><see langword="true"/> when the names match.</returns>
     public static bool NameMatches(Assembly assembly, string assemblyName)
         => string.Equals(assembly.GetName().Name, assemblyName, StringComparison.OrdinalIgnoreCase);
 }

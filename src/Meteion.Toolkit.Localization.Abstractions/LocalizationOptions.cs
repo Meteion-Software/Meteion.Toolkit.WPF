@@ -3,10 +3,15 @@ using System.Reflection;
 
 namespace Meteion.Toolkit.Localization.Abstractions;
 
+/// <summary>
+/// Configuration for the localization service: default resource assembly, missing-key handling and default culture.
+/// </summary>
 public class LocalizationOptions
 {
     /// <summary>
-    /// Gets or sets the default assembly to use for resource lookups. If not set, the assembly of the calling code will be used.
+    /// Gets or sets the fallback assembly for resource lookups that name no assembly. It is used only
+    /// when no assembly is set explicitly and none can be inferred from the XAML context; if it is
+    /// also unset, an unqualified key without an assembly throws a <see cref="LocalizationConfigurationException"/>.
     /// </summary>
     public Assembly? DefaultAssembly { get; set; }
 

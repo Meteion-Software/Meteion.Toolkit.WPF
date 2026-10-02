@@ -17,6 +17,10 @@ internal sealed class CultureChangeTrigger : INotifyPropertyChanged
 {
     private readonly ILocalizationService _service;
 
+    /// <summary>
+    /// Subscribes (weakly) to culture changes on the given service.
+    /// </summary>
+    /// <param name="service">The localization service whose culture changes raise the notification.</param>
     public CultureChangeTrigger(ILocalizationService service)
     {
         _service = service;
@@ -31,6 +35,7 @@ internal sealed class CultureChangeTrigger : INotifyPropertyChanged
     /// </summary>
     public object? Value => null;
 
+    /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnCultureChanged(object? sender, CultureChangedEventArgs e) =>

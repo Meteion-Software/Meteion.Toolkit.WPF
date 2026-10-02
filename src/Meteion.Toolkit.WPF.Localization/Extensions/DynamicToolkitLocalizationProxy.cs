@@ -21,11 +21,21 @@ internal sealed class DynamicToolkitLocalizationProxy : DependencyObject, INotif
     private readonly LocalizationRequest _request;
     private string? _key;
 
+    /// <summary>
+    /// Creates a proxy that resolves keys against a single assembly.
+    /// </summary>
+    /// <param name="service">The service lookups go through.</param>
+    /// <param name="assembly">The assembly unqualified keys resolve against.</param>
+    /// <param name="keyPrefix">Optional text prepended to each key before lookup.</param>
     public DynamicToolkitLocalizationProxy(ILocalizationService service, Assembly assembly, string? keyPrefix = null)
         : this(new LocalizationRequest(service, assembly, keyPrefix: keyPrefix))
     {
     }
 
+    /// <summary>
+    /// Creates a proxy and subscribes (weakly) to culture changes.
+    /// </summary>
+    /// <param name="request">The lookup settings used to resolve each key.</param>
     public DynamicToolkitLocalizationProxy(LocalizationRequest request)
     {
         _request = request;
@@ -54,8 +64,12 @@ internal sealed class DynamicToolkitLocalizationProxy : DependencyObject, INotif
         }
     }
 
+    /// <summary>
+    /// The localized text for <see cref="Key"/>, or an empty string while no key is set.
+    /// </summary>
     public string Value { get; private set; }
 
+    /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnCultureChanged(object? sender, CultureChangedEventArgs e) => Recompute();

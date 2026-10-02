@@ -27,14 +27,17 @@ public class PlaceholderContainer : ContentControl
     // A ContentPresenter only instantiates its template for non-null content, so a null Value is swapped for this.
     private static readonly object NullValue = new();
 
+    /// <summary>Identifies the <see cref="Value"/> dependency property.</summary>
     public static readonly DependencyProperty ValueProperty =
         DependencyProperty.Register(nameof(Value), typeof(object), typeof(PlaceholderContainer),
             new PropertyMetadata(null, OnValueChanged));
 
+    /// <summary>Identifies the <see cref="ShowPlaceholder"/> dependency property.</summary>
     public static readonly DependencyProperty ShowPlaceholderProperty =
         DependencyProperty.Register(nameof(ShowPlaceholder), typeof(bool?), typeof(PlaceholderContainer),
             new PropertyMetadata(null, OnPresentationChanged));
 
+    /// <summary>Identifies the <see cref="PlaceholderTemplate"/> dependency property.</summary>
     public static readonly DependencyProperty PlaceholderTemplateProperty =
         DependencyProperty.Register(nameof(PlaceholderTemplate), typeof(DataTemplate), typeof(PlaceholderContainer),
             new PropertyMetadata(null, OnPresentationChanged));
@@ -43,10 +46,13 @@ public class PlaceholderContainer : ContentControl
         DependencyProperty.RegisterReadOnly(nameof(IsPlaceholderVisible), typeof(bool), typeof(PlaceholderContainer),
             new PropertyMetadata(true));
 
+    /// <summary>Identifies the <see cref="IsPlaceholderVisible"/> read-only dependency property.</summary>
     public static readonly DependencyProperty IsPlaceholderVisibleProperty = IsPlaceholderVisiblePropertyKey.DependencyProperty;
 
     private UIElement? _contentPart;
     private ContentPresenter? _placeholderHostPart;
+
+    // The Value currently observed for collection changes; null when not subscribed.
     private INotifyCollectionChanged? _subscribedValue;
 
     static PlaceholderContainer()
@@ -55,6 +61,10 @@ public class PlaceholderContainer : ContentControl
         FocusableProperty.OverrideMetadata(typeof(PlaceholderContainer), new FrameworkPropertyMetadata(false));
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PlaceholderContainer"/> class. Collection change
+    /// subscriptions are held only while the control is loaded, so it does not leak through its <see cref="Value"/>.
+    /// </summary>
     public PlaceholderContainer()
     {
         Loaded += OnLoaded;
@@ -96,6 +106,7 @@ public class PlaceholderContainer : ContentControl
     /// <summary>Gets whether the placeholder is currently replacing the content.</summary>
     public bool IsPlaceholderVisible => (bool)GetValue(IsPlaceholderVisibleProperty);
 
+    /// <inheritdoc />
     public override void OnApplyTemplate()
     {
         base.OnApplyTemplate();

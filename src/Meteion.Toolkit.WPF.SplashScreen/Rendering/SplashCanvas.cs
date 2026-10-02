@@ -14,6 +14,10 @@ internal sealed unsafe class SplashCanvas : IDisposable
     private readonly nint _previousBitmap;
     private nint _hbitmap;
 
+    /// <summary>Allocates the DIB section and the GDI+ objects that draw into it.</summary>
+    /// <param name="width">Canvas width in pixels.</param>
+    /// <param name="height">Canvas height in pixels.</param>
+    /// <exception cref="InvalidOperationException">A GDI call failed; anything already allocated is released.</exception>
     public SplashCanvas(int width, int height)
     {
         Width = width;
@@ -56,20 +60,28 @@ internal sealed unsafe class SplashCanvas : IDisposable
         }
     }
 
+    /// <summary>Canvas width in pixels.</summary>
     public int Width { get; }
 
+    /// <summary>Canvas height in pixels.</summary>
     public int Height { get; }
 
+    /// <summary>Memory device context the DIB section is selected into; passed to <c>UpdateLayeredWindow</c> as the source.</summary>
     public nint Hdc { get; private set; }
 
+    /// <summary>Start of the pixel memory (4 bytes per pixel, rows top to bottom).</summary>
     public byte* Bits { get; }
 
+    /// <summary>Size of the pixel memory in bytes.</summary>
     public int ByteCount => Width * Height * 4;
 
+    /// <summary>GDI+ bitmap that wraps <see cref="Bits"/>.</summary>
     public Bitmap Bitmap { get; } = null!;
 
+    /// <summary>GDI+ drawing surface for <see cref="Bitmap"/>.</summary>
     public Graphics Graphics { get; } = null!;
 
+    /// <summary>Releases the GDI+ objects, the DIB section and the device context.</summary>
     public void Dispose()
     {
         Graphics?.Dispose();

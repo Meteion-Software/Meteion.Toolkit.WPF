@@ -32,16 +32,19 @@ public static class LocalizationKeyChecker
     /// </summary>
     private const string LocalizedValueExtensionClrNamespace = "Meteion.Toolkit.WPF.Localization.Extensions";
 
+    /// <summary>Matches an <c>xmlns:prefix="uri"</c> declaration.</summary>
     private static readonly Regex XmlnsDeclarationPattern = new(
         "xmlns:(?<prefix>\\w+)\\s*=\\s*\"(?<uri>[^\"]*)\"",
         RegexOptions.Compiled);
 
+    /// <summary>Matches a <c>name="value"</c> XML attribute.</summary>
     private static readonly Regex AttributePattern = new(
         "(?<name>[\\w.]+)\\s*=\\s*\"(?<value>[^\"]*)\"",
         RegexOptions.Compiled);
 
     private static readonly Regex CommentPattern = new("<!--.*?-->", RegexOptions.Compiled | RegexOptions.Singleline);
 
+    /// <summary>Matches a <c>clr-namespace:Ns;assembly=Asm</c> XAML namespace URI (the assembly part is optional).</summary>
     private static readonly Regex ClrNamespacePattern = new(
         @"^clr-namespace:(?<ns>[^;]*)(?:;assembly=(?<asm>.*))?$",
         RegexOptions.Compiled);
@@ -55,6 +58,12 @@ public static class LocalizationKeyChecker
     /// Scans <paramref name="rootDirectory"/> and reports resx sync issues and (unless
     /// disabled) problems with XAML <c>LocalizedValue</c> usages.
     /// </summary>
+    /// <param name="rootDirectory">The project directory to scan recursively. Must not be null or whitespace.</param>
+    /// <param name="options">Controls which checks run and what is skipped. Defaults are used when null.</param>
+    /// <returns>
+    /// The issues found. The result is empty if <paramref name="rootDirectory"/> does not exist.
+    /// </returns>
+    /// <exception cref="ArgumentException"><paramref name="rootDirectory"/> is null, empty or whitespace.</exception>
     public static LocalizationCheckResult CheckDirectory(string rootDirectory, LocalizationCheckOptions? options = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
@@ -80,9 +89,11 @@ public static class LocalizationKeyChecker
         return new LocalizationCheckResult(resourceIssues, usageIssues);
     }
 
+    // Runs the LOC009/LOC010 literal check over every non-excluded .xaml file.
     private static IEnumerable<LocalizationKeyUsageIssue> CheckLiterals(string rootDirectory, LocalizationCheckOptions options) =>
         EnumerateFiles(rootDirectory, "*.xaml", options).SelectMany(path => XamlLiteralChecker.Check(path, options));
 
+    // Compares each satellite resx against its neutral resx: LOC001 for missing keys, LOC002 for orphans.
     private static List<LocalizationKeyIssue> CheckResourceGroups(IReadOnlyList<ResourceGroup> groups, LocalizationCheckOptions options)
     {
         var issues = new List<LocalizationKeyIssue>();
@@ -612,6 +623,7 @@ public static class LocalizationKeyChecker
 
     private static HashSet<string> ReadStringKeys(string resxPath) => new(ReadStringKeyList(resxPath), StringComparer.Ordinal);
 
+    // Groups .resx files into families (a neutral file plus its culture satellites) by directory and base name.
     private static List<ResourceGroup> DiscoverResourceGroups(string root, LocalizationCheckOptions options, ProjectInfo project)
     {
         var builders = new Dictionary<(string Directory, string BaseName), (string? Neutral, List<(string Culture, string Path)> Satellites)>();

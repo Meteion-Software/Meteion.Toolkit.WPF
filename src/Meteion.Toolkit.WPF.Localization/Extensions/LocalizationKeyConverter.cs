@@ -27,11 +27,14 @@ public class LocalizationKeyConverter : StringConverter
     private static int _cachedAssemblyCount = -1;
     private static string[] _cachedKeys = [];
 
+    /// <inheritdoc />
     public override bool GetStandardValuesSupported(ITypeDescriptorContext? context) => true;
 
-    // Not exclusive - see remarks above.
+    /// <inheritdoc />
+    /// <remarks>Not exclusive - see the class remarks.</remarks>
     public override bool GetStandardValuesExclusive(ITypeDescriptorContext? context) => false;
 
+    /// <inheritdoc />
     public override StandardValuesCollection GetStandardValues(ITypeDescriptorContext? context) =>
         new(DiscoverKeys());
 

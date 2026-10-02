@@ -10,6 +10,10 @@ namespace Meteion.Toolkit.WPF.SplashScreen;
 /// </summary>
 internal static class SplashImageSource
 {
+    /// <summary>Finds an embedded resource and returns a function that opens it.</summary>
+    /// <param name="fileName">The resource name, or a unique trailing part of it.</param>
+    /// <param name="assembly">The assembly to search, or <c>null</c> for the entry assembly.</param>
+    /// <returns>A function that opens a new stream over the resource each time it is called.</returns>
     public static Func<Stream> ResolveEmbeddedResource(string fileName, Assembly? assembly)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -24,6 +28,9 @@ internal static class SplashImageSource
             ?? throw new InvalidOperationException($"The embedded resource '{resourceName}' could not be opened from assembly '{assembly.GetName().Name}'.");
     }
 
+    /// <summary>Verifies that an image file exists and returns a function that opens it.</summary>
+    /// <param name="fileName">An absolute path, or one relative to the app's directory.</param>
+    /// <returns>A function that opens a new read-only stream over the file each time it is called.</returns>
     public static Func<Stream> ResolveFilesystem(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -38,6 +45,12 @@ internal static class SplashImageSource
         return () => new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
     }
 
+    /// <summary>Picks the manifest resource name that corresponds to <paramref name="fileName"/>.</summary>
+    /// <param name="resourceNames">All manifest resource names in the assembly.</param>
+    /// <param name="fileName">The requested name; an exact match wins over a <c>.{fileName}</c> suffix match.</param>
+    /// <param name="assembly">The assembly searched, used only in error messages.</param>
+    /// <returns>The full manifest resource name.</returns>
+    /// <exception cref="InvalidOperationException">There is no match, or the suffix match is ambiguous.</exception>
     internal static string Match(string[] resourceNames, string fileName, Assembly assembly)
     {
         if (Array.IndexOf(resourceNames, fileName) >= 0)

@@ -91,6 +91,7 @@ public sealed class SplashScreenOptions
     public bool DpiScaling { get; set; } = true;
 
     /// <summary>Cheap synchronous validation, called from <see cref="SplashScreenBuilder.Show"/>.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">A size, radius, font size or duration is out of range.</exception>
     internal void Validate()
     {
         if (FontSize <= 0 || float.IsNaN(FontSize)) throw new ArgumentOutOfRangeException(nameof(FontSize), FontSize, "Must be greater than zero.");

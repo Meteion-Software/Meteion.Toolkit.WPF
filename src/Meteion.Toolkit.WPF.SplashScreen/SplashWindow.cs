@@ -47,6 +47,8 @@ internal sealed unsafe class SplashWindow : IDisposable
     private bool _handoffApplied;
     private bool _animationTimerRunning;
 
+    /// <summary>Creates the window object; nothing is allocated until <see cref="Run"/>.</summary>
+    /// <param name="handle">The caller-facing half that supplies options and state.</param>
     public SplashWindow(SplashScreenHandle handle)
     {
         _handle = handle;
@@ -90,6 +92,7 @@ internal sealed unsafe class SplashWindow : IDisposable
         Pump();
     }
 
+    /// <summary>Destroys the window and releases the renderer, canvas, window class and self handle.</summary>
     public void Dispose()
     {
         if (_hwnd != 0)
@@ -117,6 +120,7 @@ internal sealed unsafe class SplashWindow : IDisposable
 
     // ---- Startup ----
 
+    // Picks the target monitor, decodes the image and builds the renderer. Returns the DPI scale and the monitor's work area.
     private float PrepareRenderer(out NativeMethods.RECT workArea)
     {
         // The monitor under the cursor, else the primary. This thread is per-monitor-DPI-aware, so all of these are physical pixels.
@@ -177,7 +181,8 @@ internal sealed unsafe class SplashWindow : IDisposable
             }
         }
 
-        var x = workArea.Left + (((workArea.Right - workArea.Left) - size.Width) / 2);
+        // Center on the monitor's work area.
+        var x = workArea.Left +(((workArea.Right - workArea.Left) - size.Width) / 2);
         var y = workArea.Top + (((workArea.Bottom - workArea.Top) - size.Height) / 2);
 
         // NOACTIVATE: the splash never takes focus. TOOLWINDOW: no taskbar button.
@@ -344,6 +349,7 @@ internal sealed unsafe class SplashWindow : IDisposable
         UpdateTimer();
     }
 
+    // Moves the splash above the app's windows without activating it, and lets clicks pass through to them.
     private void ApplyHandoff()
     {
         _handoffApplied = true;
@@ -358,6 +364,7 @@ internal sealed unsafe class SplashWindow : IDisposable
         NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, style | (nint)NativeMethods.WS_EX_TRANSPARENT);
     }
 
+    // Starts a graceful close: waits out any remaining minimum display time (HoldTimerId), then fades out.
     private void BeginClose()
     {
         _closing = true;
@@ -407,6 +414,7 @@ internal sealed unsafe class SplashWindow : IDisposable
 
     // ---- Animation ----
 
+    // Runs the animation timer only while something is animating, so an idle splash costs no wake-ups.
     private void UpdateTimer()
     {
         if (_hwnd == 0)

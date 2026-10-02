@@ -36,6 +36,10 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
     private const string GeneratedLocalizationKeysAttributeFullName =
         "Meteion.Toolkit.Localization.Abstractions.GeneratedLocalizationKeysAttribute";
 
+    /// <summary>
+    /// Warning reported when a resx entry is itself named <c>ResxSource</c>, which would clash with the
+    /// generated <c>ResxSource</c> constant. The entry's constant is given a different identifier instead.
+    /// </summary>
     internal static readonly DiagnosticDescriptor ResxSourceKeyCollision = new(
         id: "MTKGEN001",
         title: "Resx key collides with the generated ResxSource constant",
@@ -44,8 +48,10 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        // Whether the marker attribute type is referenced decides if generated classes are annotated with it.
         var compilationInfo = context.CompilationProvider
             .Select(static (compilation, _) => (
                 AssemblyName: compilation.AssemblyName ?? string.Empty,
@@ -82,6 +88,17 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         });
     }
 
+    /// <summary>
+    /// Builds the generated keys class for one resx file, applying any per-file MSBuild metadata overrides
+    /// for class name, namespace and resource base name.
+    /// </summary>
+    /// <param name="text">The resx file from <c>AdditionalFiles</c>.</param>
+    /// <param name="fileOptions">Analyzer config options carrying the file's MSBuild item metadata.</param>
+    /// <param name="defaultRootNamespace">The project's <c>RootNamespace</c>, used when no override is set.</param>
+    /// <param name="assemblyName">Name of the assembly being compiled; the first part of each qualified key.</param>
+    /// <param name="includeMarkerAttribute">Whether to annotate the class with the generated-keys marker attribute.</param>
+    /// <param name="cancellationToken">Token used to cancel reading the resx.</param>
+    /// <returns>The generated file, or <see langword="null"/> for satellite or unreadable resx files.</returns>
     private static GeneratedFile? TryCreateGeneratedFile(
         AdditionalText text,
         AnalyzerConfigOptions fileOptions,
@@ -135,6 +152,15 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         return new GeneratedFile(hintName, SourceText.From(source, Encoding.UTF8), diagnostics);
     }
 
+    /// <summary>
+    /// Reads the string entries of a resx, ignoring non-string resources and duplicate names.
+    /// </summary>
+    /// <param name="text">The resx file to read.</param>
+    /// <param name="cancellationToken">Token used to cancel parsing.</param>
+    /// <returns>
+    /// The entry names, neutral values and 1-based source lines, or <see langword="null"/> if the file is
+    /// missing or not well-formed XML.
+    /// </returns>
     private static List<(string Name, string Value, int Line)>? ReadStringEntries(AdditionalText text, CancellationToken cancellationToken)
     {
         var sourceText = text.GetText(cancellationToken);
@@ -185,6 +211,18 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         return entries;
     }
 
+    /// <summary>
+    /// Renders the C# source of the keys class: a <c>ResxSource</c> constant plus one documented constant per entry.
+    /// </summary>
+    /// <param name="namespace">Namespace to wrap the class in, or <see langword="null"/> for the global namespace.</param>
+    /// <param name="className">Name of the generated static class.</param>
+    /// <param name="resxPath">Path of the source resx, recorded in the file header and marker attribute.</param>
+    /// <param name="assemblyName">Assembly name used to qualify keys.</param>
+    /// <param name="baseName">Resource base name used to qualify keys.</param>
+    /// <param name="entries">The resx string entries to emit constants for.</param>
+    /// <param name="includeMarkerAttribute">Whether to emit the generated-keys marker attribute.</param>
+    /// <param name="diagnostics">Collects diagnostics found while generating, such as identifier collisions.</param>
+    /// <returns>The generated source text.</returns>
     private static string GenerateSource(
         string? @namespace,
         string className,
@@ -275,6 +313,9 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
     /// top-level statements, cascading into a wall of build errors from one long string. Every
     /// physical line gets its own <c>///</c> prefix instead.
     /// </summary>
+    /// <param name="builder">Builder receiving the generated source.</param>
+    /// <param name="indent">Indentation of the member the doc comment belongs to.</param>
+    /// <param name="value">The resx value to render; XML-escaped before writing.</param>
     private static void AppendValueDoc(StringBuilder builder, string indent, string value)
     {
         var lines = value.Replace("\r\n", "\n").Split('\n');
@@ -309,6 +350,12 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
 
     private static string XmlEscape(string value) => new XText(value).ToString();
 
+    /// <summary>
+    /// A generated source file together with the diagnostics found while producing it.
+    /// </summary>
+    /// <param name="hintName">File name passed to the compiler for the generated source.</param>
+    /// <param name="source">The generated source text.</param>
+    /// <param name="diagnostics">Diagnostics to report alongside the source.</param>
     private sealed class GeneratedFile(string hintName, SourceText source, IReadOnlyList<Diagnostic> diagnostics)
     {
         public string HintName { get; } = hintName;

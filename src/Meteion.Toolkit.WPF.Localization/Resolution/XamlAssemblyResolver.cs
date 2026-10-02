@@ -4,10 +4,16 @@ using System.Windows.Markup;
 
 namespace Meteion.Toolkit.WPF.Localization.Resolution;
 
+/// <summary>
+/// Infers the owning assembly from the pack URI of the XAML being parsed, falling back to the
+/// assembly of the element the markup extension is applied to.
+/// </summary>
 internal sealed class XamlAssemblyResolver : IXamlAssemblyResolver
 {
+    // Keyed by the XAML base URI so each file's pack URI is only parsed once.
     private readonly ConcurrentDictionary<string, Assembly> _cache = new();
 
+    /// <inheritdoc />
     public Assembly? Resolve(IServiceProvider serviceProvider)
     {
         // This is not a Microsoft.Extensions.DependencyInjection serviceprovider, be aware!!

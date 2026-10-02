@@ -27,11 +27,18 @@ public readonly struct SplashProgress
     internal string? StatusText { get; }
 
     /// <summary>Sets the bar to <paramref name="value"/> (0.0–1.0, clamped) and optionally the status text.</summary>
+    /// <param name="value">The bar fill, from 0.0 (empty) to 1.0 (full). NaN is ignored.</param>
+    /// <param name="status">The new status text, or <c>null</c> to leave it unchanged.</param>
+    /// <returns>A report that sets the bar to a fixed value.</returns>
     public static SplashProgress Determinate(double value, string? status = null) => new(BarChange.Determinate, value, status);
 
     /// <summary>Switches the bar to indeterminate mode and optionally sets the status text.</summary>
+    /// <param name="status">The new status text, or <c>null</c> to leave it unchanged.</param>
+    /// <returns>A report that puts the bar into indeterminate mode.</returns>
     public static SplashProgress Indeterminate(string? status = null) => new(BarChange.Indeterminate, 0, status);
 
     /// <summary>Sets the status text and leaves the bar unchanged.</summary>
+    /// <param name="status">The new status text. An empty string clears the text.</param>
+    /// <returns>A report that changes only the status text.</returns>
     public static SplashProgress Status(string status) => new(BarChange.Unchanged, 0, status ?? string.Empty);
 }

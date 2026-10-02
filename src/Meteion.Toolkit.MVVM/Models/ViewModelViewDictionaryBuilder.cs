@@ -7,19 +7,91 @@ using System.Windows.Controls;
 
 namespace Meteion.Toolkit.MVVM.Models;
 
+/// <summary>
+/// Collects view model to view mappings, either explicitly or by scanning an assembly, and builds them into a
+/// <see cref="ViewModelViewDictionary{TUIType}"/>.
+/// </summary>
+/// <typeparam name="TUIType">The base type of the views being mapped, such as Page or Window.</typeparam>
+/// <summary>
+/// Collects view model to view mappings, either explicitly or by scanning an assembly, and builds them into a
+/// <see cref="ViewModelViewDictionary{TUIType}"/>.
+/// </summary>
+/// <typeparam name="TUIType">The base type of the views being mapped, such as Page or Window.</typeparam>
+/// <summary>
+/// Collects view model to view mappings, either explicitly or by scanning an assembly, and builds them into a
+/// <see cref="ViewModelViewDictionary{TUIType}"/>.
+/// </summary>
+/// <typeparam name="TUIType">The base type of the views being mapped, such as Page or Window.</typeparam>
+/// <summary>
+/// Collects view model to view mappings, either explicitly or by scanning an assembly, and builds them into a
+/// <see cref="ViewModelViewDictionary{TUIType}"/>.
+/// </summary>
+/// <typeparam name="TUIType">The base type of the views being mapped, such as Page or Window.</typeparam>
 public class ViewModelViewDictionaryBuilder<TUIType>
 {
     private readonly ViewModelViewDictionary<TUIType> _views = [];
     private readonly ILogger? _logger;
 
+    /// <summary>
+    /// Creates a builder that logs the results of assembly scans.
+    /// </summary>
+    /// <param name="logger">The logger that receives scan diagnostics.</param>
+    /// <summary>
+    /// Creates a builder that logs the results of assembly scans.
+    /// </summary>
+    /// <param name="logger">The logger that receives scan diagnostics.</param>
+    /// <summary>
+    /// Creates a builder that logs the results of assembly scans.
+    /// </summary>
+    /// <param name="logger">The logger that receives scan diagnostics.</param>
+    /// <summary>
+    /// Creates a builder that logs the results of assembly scans.
+    /// </summary>
+    /// <param name="logger">The logger that receives scan diagnostics.</param>
     public ViewModelViewDictionaryBuilder(ILogger logger)
     {
         _logger = logger;
     }
 
+    /// <summary>
+    /// Creates a builder that does not log.
+    /// </summary>
+    /// <summary>
+    /// Creates a builder that does not log.
+    /// </summary>
+    /// <summary>
+    /// Creates a builder that does not log.
+    /// </summary>
+    /// <summary>
+    /// Creates a builder that does not log.
+    /// </summary>
     public ViewModelViewDictionaryBuilder()
     { }
 
+    /// <summary>
+    /// Maps a view model type to the view that displays it.
+    /// </summary>
+    /// <typeparam name="T_ViewModel">The view model type.</typeparam>
+    /// <typeparam name="T_View">The view type that displays the view model.</typeparam>
+    /// <param name="lifetime">The service lifetime to register the view model and view with.</param>
+    /// <summary>
+    /// Maps a view model type to the view that displays it.
+    /// </summary>
+    /// <typeparam name="T_ViewModel">The view model type.</typeparam>
+    /// <typeparam name="T_View">The view type that displays the view model.</typeparam>
+    /// <param name="lifetime">The service lifetime to register the view model and view with.</param>
+    /// <summary>
+    /// Maps a view model type to the view that displays it.
+    /// </summary>
+    /// <typeparam name="T_ViewModel">The view model type.</typeparam>
+    /// <typeparam name="T_View">The view type that displays the view model.</typeparam>
+    /// <param name="lifetime">The service lifetime to register the view model and view with.</param>
+    /// <summary>
+    /// Maps a view model type to the view that displays it.
+    /// </summary>
+    /// <typeparam name="T_ViewModel">The view model type.</typeparam>
+    /// <typeparam name="T_View">The view type that displays the view model.</typeparam>
+    /// <param name="lifetime">The service lifetime to register the view model and view with.</param>
     public void Add<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Scoped)
         where T_ViewModel : class, INotifyPropertyChanged
         where T_View : TUIType
@@ -28,14 +100,14 @@ public class ViewModelViewDictionaryBuilder<TUIType>
     }
 
     /// <summary>
-    /// Scan the assembly for all types of TUIType that have a corresponding ViewModel type and add them to the dictionary. 
-    /// We assume the following naming convention: 
-    /// - The ViewModel type is named {ViewName}ViewModel
-    /// - The View type is named {ViewName}
-    /// - If TUIType is Page, then the ViewModel type is named {ViewName}ViewModel and the View type is named {ViewName}Page
-    /// - If TUIType is Window, then the ViewModel type is named {ViewName}ViewModel and the View type is named {ViewName}Window
+    /// Scan the assembly for all concrete TUIType views that have a corresponding ViewModel and add them to the
+    /// dictionary with a scoped lifetime. A ViewModel matches a view by name:
+    /// - {ViewType}ViewModel for any view
+    /// - {ViewType}PageViewModel when TUIType is Page
+    /// - {ViewType}WindowViewModel when TUIType is Window
+    /// The first match wins. Views without a match are skipped and logged as a warning.
     /// </summary>
-    /// <param name="assembly"></param>
+    /// <param name="assembly">The assembly to scan for views and view models.</param>
     public void AddFromAssembly(Assembly assembly)
     {
         // Build a list of all valid view types
@@ -80,6 +152,18 @@ public class ViewModelViewDictionaryBuilder<TUIType>
         }
     }
 
+    /// <summary>
+    /// Gets the mappings collected so far.
+    /// </summary>
+    /// <returns>The dictionary of view model types to view records.</returns>
+    /// <summary>
+    /// Gets the mappings collected so far.
+    /// </summary>
+    /// <returns>The dictionary of view model types to view records.</returns>
+    /// <summary>
+    /// Gets the mappings collected so far.
+    /// </summary>
+    /// <returns>The dictionary of view model types to view records.</returns>
     public ViewModelViewDictionary<TUIType> Build()
     {
         return _views;

@@ -26,17 +26,24 @@ internal sealed class LocalizationRequest
     private readonly Assembly? _contextAssembly;
     private readonly Exception? _contextAssemblyError;
 
+    /// <summary>
+    /// Creates a request from already-resolved settings. Prefer <see cref="Create"/> for a
+    /// markup-extension usage.
+    /// </summary>
     /// <param name="service">The service lookups go through.</param>
     /// <param name="contextAssembly">
     /// The assembly an unqualified key without a <paramref name="source"/> resolves against -
     /// null when it couldn't be resolved, in which case <paramref name="contextAssemblyError"/>
     /// is rethrown only if such a key actually needs it.
     /// </param>
+    /// <param name="source">The usage's <c>Source</c> resx identity, if any.</param>
+    /// <param name="keyPrefix">Optional text prepended to each unqualified key before lookup.</param>
     /// <param name="explicitAssembly">The usage's explicit <c>Assembly</c>, if any - checked against qualified keys.</param>
     /// <param name="missingKeyBehavior">
     /// How <see cref="ResolveForBinding"/> handles a bound value that breaks the rules above -
     /// the app's <see cref="LocalizationOptions.MissingKeyBehavior"/>.
     /// </param>
+    /// <param name="contextAssemblyError">The failure from resolving the context assembly, if it failed.</param>
     public LocalizationRequest(
         ILocalizationService service,
         Assembly? contextAssembly,
@@ -64,6 +71,11 @@ internal sealed class LocalizationRequest
     /// <exception cref="LocalizationConfigurationException">
     /// <paramref name="source"/> and <paramref name="assembly"/> were both set.
     /// </exception>
+    /// <param name="source">The usage's <c>Source</c> resx identity, if any.</param>
+    /// <param name="assembly">The usage's explicit <c>Assembly</c>, if any.</param>
+    /// <param name="keyPrefix">Optional text prepended to each unqualified key before lookup.</param>
+    /// <param name="serviceProvider">The XAML service provider used to infer the context assembly.</param>
+    /// <returns>The request for this usage.</returns>
     public static LocalizationRequest Create(
         string? source,
         Assembly? assembly,
@@ -100,16 +112,27 @@ internal sealed class LocalizationRequest
         return new LocalizationRequest(loc, contextAssembly, source, keyPrefix, assembly, contextAssemblyError, missingKeyBehavior);
     }
 
+    /// <summary>The service lookups go through.</summary>
     public ILocalizationService Service { get; }
+
+    /// <summary>The resx identity unqualified keys resolve from, if set.</summary>
     public string? Source { get; }
+
+    /// <summary>Text prepended to each unqualified key before lookup, if set.</summary>
     public string? KeyPrefix { get; }
+
+    /// <summary>The usage's explicit assembly, checked against qualified keys, if set.</summary>
     public Assembly? ExplicitAssembly { get; }
+
+    /// <summary>How a bound value that breaks the lookup rules is handled.</summary>
     public MissingResourceBehavior MissingKeyBehavior { get; }
 
     /// <summary>
     /// Resolves <paramref name="key"/>, throwing <see cref="LocalizationConfigurationException"/>
     /// for a usage that breaks the rules above.
     /// </summary>
+    /// <param name="key">The raw key, qualified or unqualified.</param>
+    /// <returns>The localized text.</returns>
     public string Resolve(string key)
     {
         var parsed = LocalizationKey.Parse(key);
@@ -163,6 +186,8 @@ internal sealed class LocalizationRequest
     /// value or an empty string. (A value that's merely missing from its resx is already handled
     /// by the service itself.)
     /// </summary>
+    /// <param name="key">The key produced by a binding.</param>
+    /// <returns>The localized text, or the fallback dictated by <see cref="MissingKeyBehavior"/>.</returns>
     public string ResolveForBinding(string key)
     {
         try
@@ -192,6 +217,8 @@ internal sealed class LocalizationRequest
     /// doesn't apply to them. Only UnsetValue (a binding that failed to resolve) is traced; null
     /// is a legitimate "nothing yet". Empty strings are deliberately still ordinary lookups.
     /// </summary>
+    /// <param name="raw">The value a key binding produced.</param>
+    /// <returns>The localized text, or an empty string when there is no key.</returns>
     public string ResolveBoundKey(object? raw)
     {
         if (ReferenceEquals(raw, DependencyProperty.UnsetValue))
@@ -213,6 +240,9 @@ internal sealed class LocalizationRequest
     /// Text for the design-time <c>[Key]</c> placeholder - the bare resx key name, not the full
     /// qualified form, so the designer surface stays readable.
     /// </summary>
+    /// <param name="keyPrefix">The usage's key prefix, applied to unqualified keys only.</param>
+    /// <param name="key">The raw key, qualified or unqualified.</param>
+    /// <returns>The text to show inside the placeholder brackets.</returns>
     public static string DesignTimeText(string? keyPrefix, string key)
     {
         var parsed = LocalizationKey.Parse(key);

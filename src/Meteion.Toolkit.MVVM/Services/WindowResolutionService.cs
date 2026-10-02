@@ -9,17 +9,50 @@ using System.Windows.Controls;
 
 namespace Meteion.Toolkit.WPF.MVVM.Services;
 
+/// <summary>
+/// Implements a default <see cref="IWindowResolutionService"/>.
+/// </summary>
+/// <param name="serviceProvider">The root provider that window scopes are created from.</param>
+/// <summary>
+/// Implements a default <see cref="IWindowResolutionService"/>.
+/// </summary>
+/// <param name="serviceProvider">The root provider that window scopes are created from.</param>
+/// <summary>
+/// Implements a default <see cref="IWindowResolutionService"/>.
+/// </summary>
+/// <param name="serviceProvider">The root provider that window scopes are created from.</param>
 public class WindowResolutionService(IServiceProvider serviceProvider) : IWindowResolutionService
 {
     private readonly ViewModelViewDictionary<Window> _windows = [];
     private readonly IServiceProvider _serviceProvider = serviceProvider;
 
+    /// <summary>
+    /// Creates the service over a pre-built set of window mappings.
+    /// </summary>
+    /// <param name="serviceProvider">The root provider that window scopes are created from.</param>
+    /// <param name="windows">The existing view model to window mappings.</param>
+    /// <summary>
+    /// Creates the service over a pre-built set of window mappings.
+    /// </summary>
+    /// <param name="serviceProvider">The root provider that window scopes are created from.</param>
+    /// <param name="windows">The existing view model to window mappings.</param>
+    /// <summary>
+    /// Creates the service over a pre-built set of window mappings.
+    /// </summary>
+    /// <param name="serviceProvider">The root provider that window scopes are created from.</param>
+    /// <param name="windows">The existing view model to window mappings.</param>
     internal WindowResolutionService(IServiceProvider serviceProvider, ViewModelViewDictionary<Window> windows)
         : this(serviceProvider)
     {
         _windows = windows;
     }
 
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">The view model or the window is already registered.</exception>
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">The view model or the window is already registered.</exception>
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">The view model or the window is already registered.</exception>
     public void AddWindow<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Transient)
         where T_ViewModel : INotifyPropertyChanged
         where T_View : Window
@@ -58,6 +91,12 @@ public class WindowResolutionService(IServiceProvider serviceProvider) : IWindow
     /// <summary>
     /// Creates a new scope for the service provider, and fetches a window.
     /// </summary>
+    /// <param name="viewModelType">The view model type whose window is required.</param>
+    /// <returns>A new window instance; its scope is disposed when the window closes.</returns>
+    /// <param name="viewModelType">The view model type whose window is required.</param>
+    /// <returns>A new window instance; its scope is disposed when the window closes.</returns>
+    /// <param name="viewModelType">The view model type whose window is required.</param>
+    /// <returns>A new window instance; its scope is disposed when the window closes.</returns>
     public Window GetNewScopedWindowInstance(Type viewModelType)
     {
         var windowType = GetWindowTypeFor(viewModelType);

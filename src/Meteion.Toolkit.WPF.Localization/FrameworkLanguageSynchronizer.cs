@@ -30,6 +30,11 @@ internal static class FrameworkLanguageSynchronizer
     private static XmlLanguage? _currentLanguage;
     private static bool _windowHandlerRegistered;
 
+    /// <summary>
+    /// Applies <paramref name="culture"/> as the <c>Language</c> of every open window, and of
+    /// windows loaded later.
+    /// </summary>
+    /// <param name="culture">The culture whose IETF language tag becomes the WPF language.</param>
     public static void Sync(CultureInfo culture)
     {
         EnsureWindowHandlerRegistered();

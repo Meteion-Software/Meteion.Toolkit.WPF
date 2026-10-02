@@ -27,38 +27,47 @@ public class StatefulContainer : ContentControl
 
     private static readonly Brush DefaultOverlayBackground = CreateOverlayBackground();
 
+    /// <summary>Identifies the <see cref="State"/> dependency property.</summary>
     public static readonly DependencyProperty StateProperty =
         DependencyProperty.Register(nameof(State), typeof(IViewState), typeof(StatefulContainer),
             new PropertyMetadata(null, OnStateChanged));
 
+    /// <summary>Identifies the <see cref="Mode"/> dependency property.</summary>
     public static readonly DependencyProperty ModeProperty =
         DependencyProperty.Register(nameof(Mode), typeof(StatefulContainerMode), typeof(StatefulContainer),
             new PropertyMetadata(StatefulContainerMode.Replace, OnPresentationChanged));
 
+    /// <summary>Identifies the <see cref="OverlayBackground"/> dependency property.</summary>
     public static readonly DependencyProperty OverlayBackgroundProperty =
         DependencyProperty.Register(nameof(OverlayBackground), typeof(Brush), typeof(StatefulContainer),
             new PropertyMetadata(DefaultOverlayBackground, OnPresentationChanged));
 
+    /// <summary>Identifies the <see cref="LoadingTemplate"/> dependency property.</summary>
     public static readonly DependencyProperty LoadingTemplateProperty =
         DependencyProperty.Register(nameof(LoadingTemplate), typeof(DataTemplate), typeof(StatefulContainer),
             new PropertyMetadata(null, OnPresentationChanged));
 
+    /// <summary>Identifies the <see cref="ErrorTemplate"/> dependency property.</summary>
     public static readonly DependencyProperty ErrorTemplateProperty =
         DependencyProperty.Register(nameof(ErrorTemplate), typeof(DataTemplate), typeof(StatefulContainer),
             new PropertyMetadata(null, OnPresentationChanged));
 
+    /// <summary>Identifies the <see cref="RetryCommand"/> dependency property.</summary>
     public static readonly DependencyProperty RetryCommandProperty =
         DependencyProperty.Register(nameof(RetryCommand), typeof(ICommand), typeof(StatefulContainer),
             new PropertyMetadata(null));
 
+    /// <summary>Identifies the <see cref="RetryCommandParameter"/> dependency property.</summary>
     public static readonly DependencyProperty RetryCommandParameterProperty =
         DependencyProperty.Register(nameof(RetryCommandParameter), typeof(object), typeof(StatefulContainer),
             new PropertyMetadata(null));
 
+    /// <summary>Identifies the <see cref="RetryContent"/> dependency property.</summary>
     public static readonly DependencyProperty RetryContentProperty =
         DependencyProperty.Register(nameof(RetryContent), typeof(object), typeof(StatefulContainer),
             new PropertyMetadata("Retry"));
 
+    /// <summary>Identifies the <see cref="ErrorTitle"/> dependency property.</summary>
     public static readonly DependencyProperty ErrorTitleProperty =
         DependencyProperty.Register(nameof(ErrorTitle), typeof(object), typeof(StatefulContainer),
             new PropertyMetadata("Something went wrong"));
@@ -66,6 +75,8 @@ public class StatefulContainer : ContentControl
     private UIElement? _contentPart;
     private Border? _stateLayerPart;
     private ContentPresenter? _stateHostPart;
+
+    // The State currently observed for property changes; null when not subscribed.
     private IViewState? _subscribedState;
 
     static StatefulContainer()
@@ -74,6 +85,10 @@ public class StatefulContainer : ContentControl
         FocusableProperty.OverrideMetadata(typeof(StatefulContainer), new FrameworkPropertyMetadata(false));
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="StatefulContainer"/> class. State change subscriptions are
+    /// held only while the control is loaded, so it does not leak through its <see cref="State"/>.
+    /// </summary>
     public StatefulContainer()
     {
         Loaded += OnLoaded;
@@ -122,6 +137,7 @@ public class StatefulContainer : ContentControl
         set => SetValue(RetryCommandProperty, value);
     }
 
+    /// <summary>Gets or sets the parameter passed to <see cref="RetryCommand"/> when the Retry button is clicked.</summary>
     public object? RetryCommandParameter
     {
         get => GetValue(RetryCommandParameterProperty);
@@ -142,6 +158,7 @@ public class StatefulContainer : ContentControl
         set => SetValue(ErrorTitleProperty, value);
     }
 
+    /// <inheritdoc />
     public override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
@@ -216,6 +233,7 @@ public class StatefulContainer : ContentControl
         var state = State;
         var status = state?.Status ?? ViewStatus.Loaded;
         var overlay = Mode == StatefulContainerMode.Overlay;
+        // "Covered" means the loading or error visual is active and the state layer is shown.
         var covered = status != ViewStatus.Loaded;
 
         _contentPart.Visibility = covered && !overlay ? Visibility.Collapsed : Visibility.Visible;

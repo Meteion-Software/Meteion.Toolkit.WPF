@@ -22,6 +22,13 @@ internal static class DynamicKeyBinder
         DependencyProperty.RegisterAttached("KeySource", typeof(string), typeof(DynamicKeyBinder),
             new PropertyMetadata(null, OnKeySourceChanged));
 
+    /// <summary>
+    /// Binds <paramref name="keyBinding"/> onto <paramref name="targetObject"/> and routes each
+    /// resolved key to <paramref name="proxy"/>.
+    /// </summary>
+    /// <param name="targetObject">The real element whose DataContext the key binding resolves against.</param>
+    /// <param name="proxy">The proxy that receives each key through <c>Key</c>.</param>
+    /// <param name="keyBinding">The caller-supplied binding that produces the resource key.</param>
     public static void Bind(DependencyObject targetObject, DynamicToolkitLocalizationProxy proxy, BindingBase keyBinding)
     {
         targetObject.SetValue(ProxyReferenceProperty, proxy);

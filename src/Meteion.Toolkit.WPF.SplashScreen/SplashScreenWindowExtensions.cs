@@ -14,6 +14,8 @@ public static class SplashScreenWindowExtensions
     /// <see cref="SplashScreenOptions.MinimumDisplayTime"/>, fades out and closes. If the window closes without ever
     /// rendering, the splash is closed anyway.
     /// </summary>
+    /// <param name="splash">The splash to hand off from.</param>
+    /// <param name="window">The window that replaces the splash; typically the application's main window.</param>
     /// <returns>A task that completes when the splash thread has exited.</returns>
     public static Task CloseWhenRendered(this ISplashScreen splash, Window window)
     {

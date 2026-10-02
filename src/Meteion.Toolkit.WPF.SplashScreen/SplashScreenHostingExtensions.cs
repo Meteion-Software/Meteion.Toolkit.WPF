@@ -11,6 +11,9 @@ public static class SplashScreenHostingExtensions
     /// Recommended. Registers a splash that was shown <em>before</em> the host builder existed, so it appears as early
     /// as possible. The host closes it once the launch window has rendered, or disposes it if startup fails.
     /// </summary>
+    /// <param name="builder">The host builder to register the splash with.</param>
+    /// <param name="splash">The already-shown splash, typically from <see cref="SplashScreenBuilder.Show"/>.</param>
+    /// <returns><paramref name="builder"/>, for chaining.</returns>
     public static HostApplicationBuilder UseSplashScreen(this HostApplicationBuilder builder, ISplashScreen splash)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -27,6 +30,9 @@ public static class SplashScreenHostingExtensions
     /// Convenience. Builds and shows the splash immediately (after the host builder was constructed, so a little
     /// later than <see cref="UseSplashScreen(HostApplicationBuilder, ISplashScreen)"/>).
     /// </summary>
+    /// <param name="builder">The host builder to register the splash with.</param>
+    /// <param name="configure">Configures the splash (image, options, logger) before it is shown.</param>
+    /// <returns><paramref name="builder"/>, for chaining.</returns>
     public static HostApplicationBuilder UseSplashScreen(this HostApplicationBuilder builder, Action<SplashScreenBuilder> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);

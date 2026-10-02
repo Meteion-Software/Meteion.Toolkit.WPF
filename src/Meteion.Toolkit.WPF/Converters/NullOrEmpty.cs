@@ -11,6 +11,8 @@ internal static class NullOrEmpty
     /// Returns <see langword="true"/> for null, an empty string, or an empty collection/sequence.
     /// Any other value (including non-enumerable objects) is considered non-empty.
     /// </summary>
+    /// <param name="value">The value to test.</param>
+    /// <returns><see langword="true"/> when the value is null or empty; otherwise <see langword="false"/>.</returns>
     public static bool Check(object? value)
     {
         switch (value)

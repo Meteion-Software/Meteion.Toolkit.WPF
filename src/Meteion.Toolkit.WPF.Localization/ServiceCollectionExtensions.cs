@@ -4,8 +4,18 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Meteion.Toolkit.WPF.Localization;
 
+/// <summary>
+/// Dependency injection registration for the WPF localization services.
+/// </summary>
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Registers the resx-backed localization provider, service and assembly resolvers, along
+    /// with <see cref="LocalizationOptions"/>.
+    /// </summary>
+    /// <param name="services">The service collection to add to.</param>
+    /// <param name="configure">Optional callback to customize <see cref="LocalizationOptions"/>.</param>
+    /// <returns>The same <paramref name="services"/> instance, for chaining.</returns>
     public static IServiceCollection AddWpfLocalization(this IServiceCollection services, Action<LocalizationOptions>? configure)
     {
         services.AddSingleton<IResourceAssemblyResolver, ResourceAssemblyResolver>();

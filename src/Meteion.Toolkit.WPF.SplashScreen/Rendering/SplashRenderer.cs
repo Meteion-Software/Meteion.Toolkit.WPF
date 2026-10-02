@@ -6,6 +6,10 @@ using System.Drawing.Text;
 namespace Meteion.Toolkit.WPF.SplashScreen.Rendering;
 
 /// <summary>What changes between frames; everything else is fixed for the life of the splash.</summary>
+/// <param name="Progress">Bar fill from 0.0 to 1.0; ignored while <paramref name="Indeterminate"/> is set.</param>
+/// <param name="Indeterminate">Whether to draw the moving segment instead of a fill.</param>
+/// <param name="IndeterminatePhase">Position of the moving segment in its cycle, from 0.0 to 1.0.</param>
+/// <param name="Text">The status text, or <c>null</c>/empty for none.</param>
 internal readonly record struct SplashRenderState(double Progress, bool Indeterminate, double IndeterminatePhase, string? Text);
 
 /// <summary>
@@ -14,6 +18,7 @@ internal readonly record struct SplashRenderState(double Progress, bool Indeterm
 /// </summary>
 internal sealed unsafe class SplashRenderer : IDisposable
 {
+    /// <summary>Width of the indeterminate segment as a fraction of the bar's width.</summary>
     internal const double IndeterminateSegmentFraction = 0.25;
 
     private const string FallbackFontFamily = "Segoe UI";
@@ -26,6 +31,7 @@ internal sealed unsafe class SplashRenderer : IDisposable
     private readonly StringFormat _textFormat;
     private readonly Font _font;
 
+    /// <summary>Computes the layout and renders the scaled background once.</summary>
     /// <param name="decoded">The decoded PNG. Only used during construction; the caller still owns it.</param>
     /// <param name="options">The splash options.</param>
     /// <param name="scale">Image pixels to physical pixels.</param>
@@ -50,11 +56,15 @@ internal sealed unsafe class SplashRenderer : IDisposable
         DrawBackground(decoded);
     }
 
+    /// <summary>Positions of the bar and text, in physical pixels.</summary>
     public SplashLayout Layout { get; }
 
+    /// <summary>Size of the rendered splash in physical pixels.</summary>
     public Size PixelSize => Layout.PixelSize;
 
     /// <summary>Draws one frame into <paramref name="frame"/>, which must be <see cref="PixelSize"/> in size.</summary>
+    /// <param name="frame">The canvas to draw into; its previous contents are overwritten.</param>
+    /// <param name="state">The bar and text state to draw.</param>
     public void Render(SplashCanvas frame, in SplashRenderState state)
     {
         Buffer.MemoryCopy(_background.Bits, frame.Bits, frame.ByteCount, _background.ByteCount);
@@ -75,6 +85,7 @@ internal sealed unsafe class SplashRenderer : IDisposable
         }
     }
 
+    /// <summary>Releases the background canvas and all GDI+ resources.</summary>
     public void Dispose()
     {
         _background.Dispose();
@@ -116,6 +127,7 @@ internal sealed unsafe class SplashRenderer : IDisposable
         Rectangle fill;
         if (state.Indeterminate)
         {
+            // The segment slides from fully off the left edge to fully off the right edge, clipped to the track.
             var segment = (int)Math.Round(bar.Width * IndeterminateSegmentFraction);
             var offset = (int)Math.Round(((bar.Width + segment) * state.IndeterminatePhase) - segment);
             var left = Math.Max(bar.Left, bar.Left + offset);
@@ -138,6 +150,7 @@ internal sealed unsafe class SplashRenderer : IDisposable
     private static GraphicsPath RoundedRect(Rectangle r, float radius)
     {
         var path = new GraphicsPath();
+        // Corner arcs have diameter d; it cannot exceed the shorter side or the corners would overlap.
         var d = Math.Min(radius * 2, Math.Min(r.Width, r.Height));
         if (d <= 0)
         {

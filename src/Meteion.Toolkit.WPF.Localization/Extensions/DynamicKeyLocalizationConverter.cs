@@ -10,13 +10,28 @@ namespace Meteion.Toolkit.WPF.Localization.Extensions;
 /// value into localized text. Combined with a <see cref="CultureChangeTrigger"/> as the second
 /// input, so the result re-resolves whenever either the bound key or the active culture changes.
 /// </summary>
+/// <param name="request">The lookup settings used to resolve each bound key.</param>
 internal sealed class DynamicKeyLocalizationConverter(LocalizationRequest request) : IMultiValueConverter
 {
+    /// <summary>
+    /// Creates a converter that resolves keys against a single assembly.
+    /// </summary>
+    /// <param name="service">The service lookups go through.</param>
+    /// <param name="assembly">The assembly unqualified keys resolve against.</param>
+    /// <param name="keyPrefix">Optional text prepended to each bound key before lookup.</param>
     public DynamicKeyLocalizationConverter(ILocalizationService service, Assembly assembly, string? keyPrefix = null)
         : this(new LocalizationRequest(service, assembly, keyPrefix: keyPrefix))
     {
     }
 
+    /// <summary>
+    /// Resolves the first bound value as a resource key.
+    /// </summary>
+    /// <param name="values">The bound values; the first is the key, the second is the culture trigger.</param>
+    /// <param name="targetType">Ignored.</param>
+    /// <param name="parameter">Ignored.</param>
+    /// <param name="culture">Ignored; the localization service's culture is used instead.</param>
+    /// <returns>The localized text, or an empty string when there is no key.</returns>
     public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
     {
         // Unlike a real DependencyProperty binding (see DynamicKeyBinder), a MultiBinding's
@@ -31,6 +46,13 @@ internal sealed class DynamicKeyLocalizationConverter(LocalizationRequest reques
         return request.ResolveBoundKey(values.Length > 0 ? values[0] : null);
     }
 
+    /// <summary>Not supported; localized text cannot be converted back to a key.</summary>
+    /// <param name="value">Unused.</param>
+    /// <param name="targetTypes">Unused.</param>
+    /// <param name="parameter">Unused.</param>
+    /// <param name="culture">Unused.</param>
+    /// <returns>Never returns.</returns>
+    /// <exception cref="NotSupportedException">Always thrown.</exception>
     public object[] ConvertBack(object value, Type[] targetTypes, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException($"{nameof(DynamicKeyLocalizationConverter)} only supports one-way binding.");
 }

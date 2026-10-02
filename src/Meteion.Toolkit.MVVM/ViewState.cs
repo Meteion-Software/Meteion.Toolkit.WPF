@@ -20,6 +20,7 @@ public sealed class ViewState : IViewState
 
     private CancellationTokenSource? _currentRun;
 
+    /// <inheritdoc />
     public event PropertyChangedEventHandler? PropertyChanged;
 
     /// <summary>Gets the current state. Starts as <see cref="ViewStatus.Loading"/> so nothing flashes before the first load begins.</summary>
@@ -37,6 +38,7 @@ public sealed class ViewState : IViewState
     /// </summary>
     /// <param name="work">The work to run; it should honour the token.</param>
     /// <param name="errorMessage">The message to show on failure; when <see langword="null"/>, the exception's message is used.</param>
+    /// <returns>A task that completes when the work has finished and the state has been updated.</returns>
     public Task RunAsync(Func<CancellationToken, Task> work, string? errorMessage = null)
         => RunCoreAsync(work, errorMessage is null ? null : _ => errorMessage);
 
@@ -46,6 +48,7 @@ public sealed class ViewState : IViewState
     /// </summary>
     /// <param name="work">The work to run; it should honour the token.</param>
     /// <param name="onException">Returns the user-facing message; returning <see langword="null"/> (or throwing) falls back to the exception's message.</param>
+    /// <returns>A task that completes when the work has finished and the state has been updated.</returns>
     public Task RunAsync(Func<CancellationToken, Task> work, Func<Exception, string?> onException)
     {
         ArgumentNullException.ThrowIfNull(onException);

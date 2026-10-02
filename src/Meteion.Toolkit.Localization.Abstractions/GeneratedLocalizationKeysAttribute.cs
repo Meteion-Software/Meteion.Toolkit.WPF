@@ -31,7 +31,14 @@ public sealed class GeneratedLocalizationKeysAttribute : Attribute
     /// </summary>
     public string? ResxSource { get; set; }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GeneratedLocalizationKeysAttribute"/> class without a resx path.
+    /// </summary>
     public GeneratedLocalizationKeysAttribute() { }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="GeneratedLocalizationKeysAttribute"/> class.
+    /// </summary>
+    /// <param name="resxPath">The path of the source .resx file, as recorded by the generator.</param>
     public GeneratedLocalizationKeysAttribute(string resxPath) => ResxPath = resxPath;
 }
