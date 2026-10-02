@@ -546,6 +546,20 @@ public class LocalizedValueExtensionTests
             () => converter.Convert(["Asm/Asm.Strings:Greeting", 0], typeof(string), null, CultureInfo.InvariantCulture));
     }
 
+    [Fact]
+    public void LocalizationRequest_UnresolvableContextAssembly_ErrorNamesTheKeyAndKeepsOriginalAsInner()
+    {
+        var original = new LocalizationConfigurationException("resolver failed");
+        var request = new LocalizationRequest(new FakeLocalizationService(), contextAssembly: null,
+            keyPrefix: "Notification_", contextAssemblyError: original);
+
+        var ex = Assert.Throws<LocalizationConfigurationException>(() => request.Resolve("Greeting"));
+
+        Assert.Contains("'Notification_Greeting'", ex.Message);
+        Assert.Contains("resolver failed", ex.Message);
+        Assert.Same(original, ex.InnerException);
+    }
+
     private sealed class RestoreAccessor(Func<IServiceProvider> original) : IDisposable
     {
         public void Dispose() => LocalizationServiceLocator.ServiceProviderAccessor = original;

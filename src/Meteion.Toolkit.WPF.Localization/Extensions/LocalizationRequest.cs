@@ -144,11 +144,16 @@ internal sealed class LocalizationRequest
             return Service.GetString(combined, Source);
         }
 
-        var assembly = _contextAssembly
-            ?? throw (_contextAssemblyError ?? new LocalizationConfigurationException(
-                $"Could not resolve a resource assembly for unqualified key '{combined}'."));
+        if (_contextAssembly is null)
+        {
+            // The resolver ran before any key was known, so name the key that needed it here.
+            throw new LocalizationConfigurationException(
+                $"Could not resolve a resource assembly for unqualified key '{combined}'. " +
+                (_contextAssemblyError?.Message ?? string.Empty),
+                _contextAssemblyError);
+        }
 
-        return Service.GetString(combined, assembly);
+        return Service.GetString(combined, _contextAssembly);
     }
 
     /// <summary>

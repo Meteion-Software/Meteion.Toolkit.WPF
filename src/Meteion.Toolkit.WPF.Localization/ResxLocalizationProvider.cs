@@ -16,7 +16,7 @@ internal sealed class ResxLocalizationProvider : ILocalizationProvider
 
     public string? GetLocalizedString(LocalizationKey key, Assembly resourceAssembly, CultureInfo culture)
     {
-        var manager = GetManager(resourceAssembly, key.BaseName);
+        var manager = GetManager(resourceAssembly, key.BaseName, key);
         try
         {
             return manager.GetString(key.Key, culture);
@@ -53,24 +53,29 @@ internal sealed class ResxLocalizationProvider : ILocalizationProvider
         }
     }
 
-    private ResourceManager GetManager(Assembly assembly, string? baseName)
-        => _managers.GetOrAdd((assembly, baseName), static k => new ResourceManager(k.BaseName ?? GetOnlyBaseName(k.Assembly), k.Assembly));
+    // key is only used to name the offending key if the assembly's only resx can't be determined.
+    private ResourceManager GetManager(Assembly assembly, string? baseName, LocalizationKey? key = null)
+        => _managers.GetOrAdd(
+            (assembly, baseName),
+            static (k, key) => new ResourceManager(k.BaseName ?? GetOnlyBaseName(k.Assembly, key), k.Assembly),
+            key);
 
-    private static string GetOnlyBaseName(Assembly assembly)
+    private static string GetOnlyBaseName(Assembly assembly, LocalizationKey? key)
     {
         var names = GetBaseNames(assembly);
+        var keyClause = key is null ? string.Empty : $" for key '{key}'";
 
         if (names.Length == 0)
         {
             throw new LocalizationConfigurationException(
-                $"Assembly '{assembly.GetName().Name}' has no embedded .resources files. Add a .resx file.");
+                $"Assembly '{assembly.GetName().Name}' has no embedded .resources files{keyClause}. Add a .resx file.");
         }
 
         if (names.Length > 1)
         {
             throw new LocalizationConfigurationException(
                 $"Assembly '{assembly.GetName().Name}' has multiple embedded .resources files " +
-                $"({string.Join(", ", names)}), so an unqualified key is ambiguous. Use a generated qualified key " +
+                $"({string.Join(", ", names)}), so the unqualified key '{key}' is ambiguous. Use a generated qualified key " +
                 "(e.g. {x:Static strings:StringsKeys.MyKey}) or set LocalizedValue.Source.");
         }
 

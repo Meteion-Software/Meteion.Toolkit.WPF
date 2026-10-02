@@ -85,6 +85,7 @@ public class ResxLocalizationProviderTests
             () => provider.GetLocalizedString(Key("Anything"), typeof(Meteion.Toolkit.WPF.Localization.Tests.Fixtures.NoResx.Marker).Assembly, CultureInfo.InvariantCulture));
 
         Assert.Contains("no embedded .resources files", ex.Message);
+        Assert.Contains("'Anything'", ex.Message);
     }
 
     [Fact]
@@ -97,6 +98,7 @@ public class ResxLocalizationProviderTests
             () => provider.GetLocalizedString(Key("Sample"), ambiguousAssembly, CultureInfo.InvariantCulture));
 
         Assert.Contains("multiple embedded .resources files", ex.Message);
+        Assert.Contains("'Sample'", ex.Message);
     }
 
     [Theory]
