@@ -53,7 +53,7 @@ public class LocalizedValueExtensionTests
 
     // Constructing a real FrameworkElement (TextBlock) requires an STA thread.
     [StaFact]
-    public void ProvideValue_DependencyPropertyTarget_BindsLiveAndReturnsInitialValue()
+    public void ProvideValue_DependencyPropertyTarget_ReturnsLiveBinding()
     {
         var service = new FakeLocalizationService { ValueToReturn = "Hello" };
         var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
@@ -64,9 +64,8 @@ public class LocalizedValueExtensionTests
                 .WithProvideValueTarget(textBlock, TextBlock.TextProperty);
             var extension = new LocalizedValueExtension { Key = "Greeting" };
 
-            var result = extension.ProvideValue(provider);
+            textBlock.SetValue(TextBlock.TextProperty, extension.ProvideValue(provider));
 
-            Assert.Equal("Hello", result);
             Assert.Equal("Hello", textBlock.Text);
 
             service.ValueToReturn = "Bonjour";
@@ -131,7 +130,7 @@ public class LocalizedValueExtensionTests
 
     // Constructing a real FrameworkElement (TextBlock) requires an STA thread.
     [StaFact]
-    public void ProvideValue_KeyBindingDependencyPropertyTarget_BindsLiveToSourcePropertyAndCulture()
+    public void ProvideValue_KeyBindingDependencyPropertyTarget_ReturnsBindingLiveToSourcePropertyAndCulture()
     {
         var service = new FakeLocalizationService { ValueToReturn = "Hello" };
         var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
@@ -143,9 +142,8 @@ public class LocalizedValueExtensionTests
                 .WithProvideValueTarget(textBlock, TextBlock.TextProperty);
             var extension = new LocalizedValueExtension { KeyBinding = new Binding(nameof(KeySource.TitleKey)) };
 
-            var result = extension.ProvideValue(provider);
+            textBlock.SetValue(TextBlock.TextProperty, extension.ProvideValue(provider));
 
-            Assert.Equal("Hello", result);
             Assert.Equal("Hello", textBlock.Text);
 
             // Source property changes...
@@ -178,7 +176,7 @@ public class LocalizedValueExtensionTests
                 KeyBinding = new Binding(nameof(KeySource.TitleKey)),
             };
 
-            extension.ProvideValue(provider);
+            textBlock.SetValue(TextBlock.TextProperty, extension.ProvideValue(provider));
 
             Assert.Equal("FromBinding", service.LastRequestedKey);
         }
@@ -218,6 +216,59 @@ public class LocalizedValueExtensionTests
 
             Assert.Throws<LocalizationConfigurationException>(() => extension.ProvideValue(provider));
         }
+    }
+
+    // Regression test: several extensions on one element used to share per-element helper
+    // properties, so only the last one took effect (a ContentDialog's Title/PrimaryButtonText/
+    // SecondaryButtonText). Goes through the real XAML parser to cover the real wiring.
+    [StaFact]
+    public void ProvideValue_SeveralKeyBindingsOnOneElement_EachResolvesIndependently()
+    {
+        var service = new FakeLocalizationService();
+        var resolver = new FakeResourceAssemblyResolver(SomeAssembly);
+        using (UseFakeLocator(service, resolver))
+        {
+            const string xaml = """
+                <Button xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                        xmlns:lx="http://wpf.meteion.ca/winfx/xaml/localization"
+                        Content="{lx:LocalizedValue KeyBinding={Binding TitleKey}}"
+                        ToolTip="{lx:LocalizedValue KeyBinding={Binding PrimaryKey}}"
+                        Tag="{lx:LocalizedValue Key=LiteralKey}" />
+                """;
+            var button = (Button)XamlReader.Parse(xaml);
+            button.DataContext = new MultiKeySource("TitleA", "PrimaryA");
+
+            // A MultiBinding only activates once the element has been through layout.
+            button.Measure(new Size(100, 100));
+            button.Arrange(new Rect(0, 0, 100, 100));
+            button.UpdateLayout();
+            Assert.Equal("TitleA", button.Content);
+            Assert.Equal("PrimaryA", button.ToolTip);
+            Assert.Equal("LiteralKey", button.Tag);
+
+            ((MultiKeySource)button.DataContext).TitleKey = "TitleB";
+            Assert.Equal("TitleB", button.Content);
+            Assert.Equal("PrimaryA", button.ToolTip);
+        }
+    }
+
+    private sealed class MultiKeySource(string titleKey, string primaryKey) : INotifyPropertyChanged
+    {
+        private string _titleKey = titleKey;
+
+        public string TitleKey
+        {
+            get => _titleKey;
+            set
+            {
+                _titleKey = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TitleKey)));
+            }
+        }
+
+        public string PrimaryKey { get; } = primaryKey;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 
     // Faithful regression test for the real-world bug report: {lx:LocalizedValue
@@ -474,7 +525,7 @@ public class LocalizedValueExtensionTests
                 KeyPrefix = "Notification_",
             };
 
-            extension.ProvideValue(provider);
+            textBlock.SetValue(TextBlock.TextProperty, extension.ProvideValue(provider));
 
             Assert.Equal(string.Format(expectedFormat, SomeSource), textBlock.Text);
             Assert.Equal(0, service.GetStringCallCount);
@@ -498,7 +549,8 @@ public class LocalizedValueExtensionTests
                 KeyPrefix = "Notification_",
             };
 
-            Assert.Throws<LocalizationConfigurationException>(() => extension.ProvideValue(provider));
+            Assert.Throws<LocalizationConfigurationException>(
+                () => textBlock.SetValue(TextBlock.TextProperty, extension.ProvideValue(provider)));
         }
     }
 
@@ -517,7 +569,8 @@ public class LocalizedValueExtensionTests
                 KeyPrefix = "Notification_",
             };
 
-            Assert.Throws<LocalizationConfigurationException>(() => extension.ProvideValue(provider));
+            Assert.Throws<LocalizationConfigurationException>(
+                () => textBlock.SetValue(TextBlock.TextProperty, extension.ProvideValue(provider)));
         }
     }
 

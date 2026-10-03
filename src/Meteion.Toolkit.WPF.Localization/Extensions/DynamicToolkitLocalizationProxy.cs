@@ -9,7 +9,8 @@ namespace Meteion.Toolkit.WPF.Localization.Extensions;
 /// Like <see cref="ToolkitLocalizationProxy"/>, but the resource key isn't fixed at
 /// construction time — it's fed in via <see cref="Key"/> (driven by a bound source
 /// property through <see cref="DynamicKeyBinder"/>) and can change independently of
-/// culture changes. <see cref="Value"/> is recomputed whenever either changes.
+/// culture changes. <see cref="Value"/> is recomputed whenever either changes. Only used
+/// for plain CLR property targets such as <c>Run.Text</c>.
 /// </summary>
 /// <remarks>
 /// This is a <see cref="DependencyObject"/> (rather than a plain class, like

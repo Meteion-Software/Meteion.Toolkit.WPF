@@ -9,6 +9,8 @@ namespace Meteion.Toolkit.WPF.Localization.Extensions;
 /// <see cref="MultiBinding.Converter"/> that resolves a <see cref="LocalizedValueExtension.KeyBinding"/>
 /// value into localized text. Combined with a <see cref="CultureChangeTrigger"/> as the second
 /// input, so the result re-resolves whenever either the bound key or the active culture changes.
+/// Used for every <c>DependencyProperty</c> target; only plain CLR property targets
+/// (e.g. <c>Run.Text</c>) go through <see cref="DynamicKeyBinder"/> instead.
 /// </summary>
 /// <param name="request">The lookup settings used to resolve each bound key.</param>
 internal sealed class DynamicKeyLocalizationConverter(LocalizationRequest request) : IMultiValueConverter
@@ -34,13 +36,13 @@ internal sealed class DynamicKeyLocalizationConverter(LocalizationRequest reques
     /// <returns>The localized text, or an empty string when there is no key.</returns>
     public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture)
     {
-        // Unlike a real DependencyProperty binding (see DynamicKeyBinder), a MultiBinding's
-        // child bindings hand their raw source value straight to the converter with no
-        // implicit target-type conversion — so a non-string KeyBinding source (e.g. an enum,
-        // as from {Binding SomeEnumProperty}) arrives here as the boxed enum, not its name.
-        // A plain `as string` cast then silently misses on every row, producing an empty
-        // string with no binding error and no failed-lookup warning to explain it. ToString()
-        // matches what WPF's own implicit conversion would have produced for the DP case.
+        // Unlike a binding to a string DependencyProperty (as DynamicKeyBinder uses for CLR
+        // property targets), a MultiBinding's child bindings hand their raw source value straight
+        // to the converter with no implicit target-type conversion — so a non-string KeyBinding
+        // source (e.g. an enum, as from {Binding SomeEnumProperty}) arrives here as the boxed
+        // enum, not its name. A plain `as string` cast then silently misses on every row,
+        // producing an empty string with no binding error and no failed-lookup warning to
+        // explain it. ToString() matches what WPF's own implicit conversion would have produced.
         // ResolveBoundKey also covers the "no key" values a failed child binding produces
         // (UnsetValue / DoNothing), which must not be stringified into a bogus key.
         return request.ResolveBoundKey(values.Length > 0 ? values[0] : null);

@@ -12,6 +12,12 @@ namespace Meteion.Toolkit.WPF.Localization.Extensions;
 /// Mirrors the attached-property forwarding trick <see cref="LocalizedValueTargetBinder"/>
 /// already uses to push the final localized value into the real target member — here the
 /// same shape is used in reverse, to pull a dynamic key in from the target's DataContext.
+/// <para>
+/// Only used for plain CLR property targets (e.g. <c>Run.Text</c>). The helper properties are
+/// attached once per element, so a second use on the same element would overwrite the first;
+/// <see cref="LocalizedValueExtension"/> binds <see cref="DependencyProperty"/> targets with a
+/// <see cref="MultiBinding"/> instead, which has no such limit.
+/// </para>
 /// </remarks>
 internal static class DynamicKeyBinder
 {

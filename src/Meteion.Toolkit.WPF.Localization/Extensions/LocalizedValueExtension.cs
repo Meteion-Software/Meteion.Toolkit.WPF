@@ -80,7 +80,8 @@ public class LocalizedValueExtension : MarkupExtension
 
     /// <summary>
     /// Returns the localized text, or a live binding that keeps it current, depending on what the
-    /// target allows (real element, template placeholder, or plain CLR property).
+    /// target allows (real element, template placeholder, or plain CLR property). Any number of
+    /// these can be used on one element, as long as each targets a different DependencyProperty.
     /// </summary>
     /// <param name="serviceProvider">The XAML service provider for the current usage.</param>
     /// <returns>The localized text, or a <see cref="BindingBase"/> for a template target.</returns>
@@ -104,35 +105,14 @@ public class LocalizedValueExtension : MarkupExtension
 
         var target = serviceProvider.GetService(typeof(IProvideValueTarget)) as IProvideValueTarget;
 
-        if (target?.TargetObject is DependencyObject depObj &&
-            target.TargetProperty is DependencyProperty or PropertyInfo)
-        {
-            // A real, connected element (i.e. NOT inside a DataTemplate/ControlTemplate,
-            // where WPF instead supplies a shared placeholder that isn't a DependencyObject —
-            // see the fallback below). Bind explicitly against it and return the initial
-            // resolved value, exactly as this already worked outside templates before.
-            if (KeyBinding != null)
-            {
-                var dynamicProxy = new DynamicToolkitLocalizationProxy(request);
-                DynamicKeyBinder.Bind(depObj, dynamicProxy, KeyBinding);
-                var dynamicBinding = new Binding(nameof(DynamicToolkitLocalizationProxy.Value)) { Source = dynamicProxy };
-                return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, dynamicBinding);
-            }
-
-            var proxy = new ToolkitLocalizationProxy(request, Key!);
-            var binding = new Binding(nameof(ToolkitLocalizationProxy.Value)) { Source = proxy };
-            return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, binding);
-        }
-
-        // From here on, TargetObject isn't a real, connected DependencyObject.
         if (target?.TargetProperty is DependencyProperty)
         {
-            // Inside a DataTemplate/ControlTemplate, TargetObject is WPF's shared template
-            // placeholder (System.Windows.SharedDp) rather than the real per-row element, so
-            // there's nothing to call BindingOperations.SetBinding on directly — that's exactly
-            // what silently broke here before. Returning a BindingBase instead works because
-            // WPF's deferred template-content loader recognizes it and wires it up itself, once
-            // per realized row, against that row's own real element and DataContext.
+            // The target is a DependencyProperty, so the binding is handed back to WPF to attach
+            // rather than being attached here. Every extension on an element then gets its own
+            // binding on its own property; an earlier version attached helper properties to the
+            // element itself, which a second extension on the same element silently overwrote
+            // (e.g. a ContentDialog's Title, PrimaryButtonText and SecondaryButtonText).
+            BindingBase binding;
             if (KeyBinding != null)
             {
                 var multiBinding = new MultiBinding
@@ -146,11 +126,45 @@ public class LocalizedValueExtension : MarkupExtension
                     Source = new CultureChangeTrigger(request.Service),
                     Mode = BindingMode.OneWay,
                 });
-                return multiBinding;
+                binding = multiBinding;
+            }
+            else
+            {
+                // Explicitly one-way: a property such as TextBox.Text defaults to two-way.
+                binding = new Binding(nameof(ToolkitLocalizationProxy.Value))
+                {
+                    Source = new ToolkitLocalizationProxy(request, Key!),
+                    Mode = BindingMode.OneWay,
+                };
             }
 
-            var templateProxy = new ToolkitLocalizationProxy(request, Key!);
-            return new Binding(nameof(ToolkitLocalizationProxy.Value)) { Source = templateProxy, Mode = BindingMode.OneWay };
+            // A real, connected element: produce the expression for it, as Binding itself does.
+            // Inside a DataTemplate/ControlTemplate, TargetObject is WPF's shared template
+            // placeholder (System.Windows.SharedDp) rather than the real per-row element, so
+            // there's nothing to attach to yet. Returning the BindingBase itself works because
+            // WPF's deferred template-content loader recognizes it and wires it up itself, once
+            // per realized row, against that row's own real element and DataContext.
+            return target.TargetObject is DependencyObject
+                ? binding.ProvideValue(serviceProvider)
+                : binding;
+        }
+
+        if (target?.TargetObject is DependencyObject depObj && target.TargetProperty is PropertyInfo)
+        {
+            // A plain CLR property (e.g. Run.Text) can't take a binding, so a proxy property on
+            // the element is bound instead and pushes each new value into the CLR property. That
+            // proxy is one per element, so it only suits a single such property per element.
+            if (KeyBinding != null)
+            {
+                var dynamicProxy = new DynamicToolkitLocalizationProxy(request);
+                DynamicKeyBinder.Bind(depObj, dynamicProxy, KeyBinding);
+                var dynamicBinding = new Binding(nameof(DynamicToolkitLocalizationProxy.Value)) { Source = dynamicProxy };
+                return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, dynamicBinding);
+            }
+
+            var proxy = new ToolkitLocalizationProxy(request, Key!);
+            var binding = new Binding(nameof(ToolkitLocalizationProxy.Value)) { Source = proxy };
+            return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, binding);
         }
 
         // Reached when the target property is a plain CLR property with no real, connected
@@ -198,6 +212,10 @@ public class LocalizedValueExtension : MarkupExtension
 /// <summary>
 /// Workaround for things like Run, which don't take a binding value.
 /// </summary>
+/// <remarks>
+/// The helper properties are attached once per element, so this supports only one plain CLR
+/// property per element. <see cref="DependencyProperty"/> targets don't use it.
+/// </remarks>
 internal static class LocalizedValueTargetBinder
 {
     // Stores which real member (DependencyProperty or PropertyInfo) to push updates into.

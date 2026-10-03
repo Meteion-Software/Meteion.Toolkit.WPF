@@ -30,6 +30,11 @@ culture changes. Bound values can be generated constants (qualified keys) too:
 
 If both `Key` and `KeyBinding` are set, `KeyBinding` takes precedence.
 
+You can use several `LocalizedValue` extensions on one element, as long as each targets a different
+property (for example a dialog's `Title`, `PrimaryButtonText` and `SecondaryButtonText`). The one
+exception is a plain CLR property that isn't a `DependencyProperty`, such as `Run.Text`: only one of those
+is supported per element.
+
 You can also optionally prepend a fixed `KeyPrefix` so the bound (or literal) source only needs to supply a
 short per-item suffix, while the shared part of the key lives once in XAML. Since the bound suffix is an
 unqualified key, point `Source` at the resx it belongs to - its generated `ResxSource` constant:
