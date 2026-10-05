@@ -26,6 +26,15 @@ public sealed class LocalizationCheckOptions
     public bool CheckLiterals { get; init; }
 
     /// <summary>
+    /// When true (the default), also check resx values as composite format strings: placeholders
+    /// that differ between cultures (LOC011), invalid format syntax (LOC012), skipped placeholder
+    /// indices (LOC013) and - together with <see cref="CheckXamlUsages"/> - XAML usages whose
+    /// argument count doesn't match (LOC014). Turn it off for a project whose strings use literal
+    /// braces without ever being formatted.
+    /// </summary>
+    public bool CheckFormatStrings { get; init; } = true;
+
+    /// <summary>
     /// Extra property names (e.g. <c>Foo</c>, <c>Owner.Foo</c>) checked for literals in addition
     /// to the built-in list.
     /// </summary>

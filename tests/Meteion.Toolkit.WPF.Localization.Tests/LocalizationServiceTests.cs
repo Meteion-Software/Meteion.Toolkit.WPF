@@ -175,6 +175,96 @@ public class LocalizationServiceTests
     }
 
     [Fact]
+    public void GetFormattedString_AppliesArgsToLocalizedTemplate()
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "Hello {0}, you have {1} items" };
+        var service = CreateService(provider, new LocalizationOptions { DefaultAssembly = SomeAssembly });
+
+        Assert.Equal("Hello Ada, you have 3 items", service.GetFormattedString("Greeting", "Ada", 3));
+    }
+
+    [Fact]
+    public void GetFormattedString_StringArgIsAnArgument_NotASource()
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "Hi {0}" };
+        var service = CreateService(provider, new LocalizationOptions { DefaultAssembly = SomeAssembly });
+
+        // The reason this isn't a GetString overload: a lone string must be formatted, not read as a source.
+        Assert.Equal("Hi Ada", service.GetFormattedString("Greeting", "Ada"));
+        Assert.Same(SomeAssembly, provider.LastAssembly);
+    }
+
+    [Fact]
+    public void GetFormattedString_ExplicitAssembly_ResolvesAgainstItThenFormats()
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "{0}!" };
+        var service = CreateService(provider);
+
+        var result = service.GetFormattedString("Greeting", SomeAssembly, ["Ada"]);
+
+        Assert.Equal("Ada!", result);
+        Assert.Same(SomeAssembly, provider.LastAssembly);
+    }
+
+    [Fact]
+    public void GetFormattedString_Source_ResolvesFromSourceThenFormats()
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "{0}!" };
+        var service = CreateService(provider);
+
+        var result = service.GetFormattedString("Greeting", $"{SomeAssembly.GetName().Name}/Some.Strings", ["Ada"]);
+
+        Assert.Equal("Ada!", result);
+        Assert.Equal("Greeting", provider.LastLocalizationKey?.Key);
+    }
+
+    [Fact]
+    public void GetFormattedString_UsesCurrentCultureForPlaceholders()
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        var originalUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            var provider = new FakeLocalizationProvider { ValueToReturn = "{0:N0}" };
+            var service = CreateService(provider, new LocalizationOptions { DefaultAssembly = SomeAssembly });
+            service.CurrentCulture = new CultureInfo("de-DE");
+
+            Assert.Equal("1.234.567", service.GetFormattedString("Total", 1234567));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
+    }
+
+    [Theory]
+    [InlineData(MissingResourceBehavior.ReturnKey, "Hello {0} {1}")]
+    [InlineData(MissingResourceBehavior.ReturnEmptyString, "")]
+    public void GetFormattedString_TooFewArgs_ReturnsAccordingToMissingKeyBehavior(
+        MissingResourceBehavior behavior, string expected)
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "Hello {0} {1}" };
+        var service = CreateService(provider,
+            new LocalizationOptions { DefaultAssembly = SomeAssembly, MissingKeyBehavior = behavior });
+
+        Assert.Equal(expected, service.GetFormattedString("Greeting", "Ada"));
+    }
+
+    [Fact]
+    public void GetFormattedString_TooFewArgsAndThrowConfigured_ThrowsConfigurationException()
+    {
+        var provider = new FakeLocalizationProvider { ValueToReturn = "Hello {0} {1}" };
+        var service = CreateService(provider, new LocalizationOptions
+        {
+            DefaultAssembly = SomeAssembly,
+            MissingKeyBehavior = MissingResourceBehavior.ThrowException,
+        });
+
+        Assert.Throws<LocalizationConfigurationException>(() => service.GetFormattedString("Greeting", "Ada"));
+    }
+
+    [Fact]
     public void CurrentCulture_SetToDifferentValue_RaisesCultureChangedAndPropertyChanged()
     {
         var service = CreateService(new FakeLocalizationProvider());

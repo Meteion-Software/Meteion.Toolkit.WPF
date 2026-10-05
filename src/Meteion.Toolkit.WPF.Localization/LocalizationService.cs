@@ -1,4 +1,5 @@
 ﻿using Meteion.Toolkit.Localization.Abstractions;
+using Meteion.Toolkit.WPF.Localization.Extensions;
 using Meteion.Toolkit.WPF.Localization.Resolution;
 using Microsoft.Extensions.Options;
 using System.ComponentModel;
@@ -115,6 +116,21 @@ internal sealed class LocalizationService : ILocalizationService
         var parsed = LocalizationKey.FromSource(source, key);
         return Lookup(parsed, ResourceAssemblyLocator.Find(parsed.AssemblyName!));
     }
+
+    /// <inheritdoc />
+    public string GetFormattedString(string key, params object?[] args) => Format(GetString(key), args);
+
+    /// <inheritdoc />
+    public string GetFormattedString(string key, Assembly resourceAssembly, object?[] args) =>
+        Format(GetString(key, resourceAssembly), args);
+
+    /// <inheritdoc />
+    public string GetFormattedString(string key, string source, object?[] args) =>
+        Format(GetString(key, source), args);
+
+    // Applies the arguments with the current culture; a failure is traced and handled per MissingKeyBehavior.
+    private string Format(string template, object?[] args) =>
+        FormatArguments.FormatForBinding(CurrentCulture, template, args, _options.MissingKeyBehavior);
 
     // Looks the key up in the given assembly; a miss is traced and handled per MissingKeyBehavior.
     private string Lookup(LocalizationKey key, Assembly assembly)

@@ -104,13 +104,18 @@ internal sealed class LocalizationRequest
             }
         }
 
-        // Options are registered by AddWpfLocalization; fall back to their defaults when a host
-        // (or a test) wires up the services without them.
-        var missingKeyBehavior = LocalizationServiceLocator.TryResolve<IOptions<LocalizationOptions>>()?.Value.MissingKeyBehavior
-            ?? new LocalizationOptions().MissingKeyBehavior;
-
-        return new LocalizationRequest(loc, contextAssembly, source, keyPrefix, assembly, contextAssemblyError, missingKeyBehavior);
+        return new LocalizationRequest(loc, contextAssembly, source, keyPrefix, assembly, contextAssemblyError, ResolveMissingKeyBehavior());
     }
+
+    /// <summary>
+    /// The app's configured <see cref="LocalizationOptions.MissingKeyBehavior"/>. Options are
+    /// registered by AddWpfLocalization; the defaults apply when a host (or a test) wires up the
+    /// services without them.
+    /// </summary>
+    /// <returns>The behavior to apply to a bound value that can't be resolved or formatted.</returns>
+    public static MissingResourceBehavior ResolveMissingKeyBehavior() =>
+        LocalizationServiceLocator.TryResolve<IOptions<LocalizationOptions>>()?.Value.MissingKeyBehavior
+            ?? new LocalizationOptions().MissingKeyBehavior;
 
     /// <summary>The service lookups go through.</summary>
     public ILocalizationService Service { get; }
@@ -235,6 +240,17 @@ internal sealed class LocalizationRequest
         // ToString() matches WPF's implicit conversion on the DependencyProperty path (e.g. enums).
         return raw.ToString() is { } key ? ResolveForBinding(key) : string.Empty;
     }
+
+    /// <summary>
+    /// Applies format arguments to a resolved template using the service's current culture; a
+    /// bad template or missing argument is traced and handled per <see cref="MissingKeyBehavior"/>
+    /// - see <see cref="FormatArguments.FormatForBinding"/>.
+    /// </summary>
+    /// <param name="template">The localized composite format string.</param>
+    /// <param name="args">The raw argument values.</param>
+    /// <returns>The formatted text, or the fallback dictated by <see cref="MissingKeyBehavior"/>.</returns>
+    public string FormatForBinding(string template, object?[] args) =>
+        FormatArguments.FormatForBinding(Service.CurrentCulture, template, args, MissingKeyBehavior);
 
     /// <summary>
     /// Text for the design-time <c>[Key]</c> placeholder - the bare resx key name, not the full

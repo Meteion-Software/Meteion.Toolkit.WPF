@@ -35,6 +35,15 @@ public sealed class FakeLocalizationService : ILocalizationService
 
     public string GetString(string key, string source) => Record(key, null, source);
 
+    public string GetFormattedString(string key, params object?[] args)
+        => string.Format(CurrentCulture, GetString(key), args);
+
+    public string GetFormattedString(string key, Assembly resourceAssembly, object?[] args)
+        => string.Format(CurrentCulture, GetString(key, resourceAssembly), args);
+
+    public string GetFormattedString(string key, string source, object?[] args)
+        => string.Format(CurrentCulture, GetString(key, source), args);
+
     private string Record(string key, Assembly? resourceAssembly, string? source)
     {
         LastRequestedKey = key;

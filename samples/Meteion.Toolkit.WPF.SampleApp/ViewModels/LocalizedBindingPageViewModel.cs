@@ -28,6 +28,18 @@ public partial class LocalizedBindingPageViewModel : INotifyPropertyChanged
         new("Third row", "Gamma"),
     ];
 
+    /// <summary>A non-localized value fed to the format example as <c>{0}</c>.</summary>
+    public string OwnerName { get; } = "Ada";
+
+    /// <summary>A number fed to the format example as <c>{1:N0}</c>; groups digits per culture.</summary>
+    public int ItemCount { get; } = 1234567;
+
+    /// <summary>An amount fed to the composite <c>CultureAwareFormat</c> example.</summary>
+    public decimal Spent { get; } = 1234.5m;
+
+    /// <summary>The budget <see cref="Spent"/> is compared against.</summary>
+    public decimal Budget { get; } = 5000m;
+
     public LocalizedBindingPageViewModel(INavigationService navService)
     {
         _navService = navService;

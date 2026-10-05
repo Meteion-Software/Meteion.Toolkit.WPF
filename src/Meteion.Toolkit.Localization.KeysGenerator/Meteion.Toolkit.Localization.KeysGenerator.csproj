@@ -41,6 +41,7 @@
   <ItemGroup>
     <!-- Naming rules shared with the other of KeysGenerator / Check.Core - see ResxNaming. -->
     <Compile Include="..\Shared\ResxNaming.cs" Link="Shared\ResxNaming.cs" />
+    <Compile Include="..\Shared\CompositeFormat.cs" Link="Shared\CompositeFormat.cs" />
     <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
     <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
   </ItemGroup>

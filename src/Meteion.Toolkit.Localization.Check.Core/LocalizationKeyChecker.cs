@@ -77,6 +77,11 @@ public static class LocalizationKeyChecker
         var project = ResolveProject(rootDirectory, options);
         var resourceGroups = DiscoverResourceGroups(rootDirectory, options, project);
         var resourceIssues = CheckResourceGroups(resourceGroups, options);
+        if (options.CheckFormatStrings)
+        {
+            resourceIssues.AddRange(CheckFormatStrings(resourceGroups));
+        }
+
         var usageIssues = options.CheckXamlUsages
             ? CheckXamlUsages(rootDirectory, options, project, resourceGroups)
             : [];
@@ -134,6 +139,102 @@ public static class LocalizationKeyChecker
         return issues;
     }
 
+    /// <summary>
+    /// Reads every value as a composite format string: LOC012 for invalid syntax, LOC013 for a
+    /// skipped placeholder index, and LOC011 where a satellite's placeholders differ from the
+    /// neutral value's. A satellite gap is left to LOC011 when the sets differ, since that already
+    /// says what is wrong.
+    /// </summary>
+    private static List<LocalizationKeyIssue> CheckFormatStrings(IReadOnlyList<ResourceGroup> groups)
+    {
+        var issues = new List<LocalizationKeyIssue>();
+
+        foreach (var group in groups)
+        {
+            if (group.NeutralPath is null)
+            {
+                continue;
+            }
+
+            var neutral = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            foreach (var (key, value) in group.Values)
+            {
+                if (CompositeFormat.TryAnalyze(value, out var indices, out var error))
+                {
+                    neutral[key] = indices;
+                    AddGapIssue(issues, key, indices, group.NeutralPath, group.NeutralPath, culture: string.Empty);
+                }
+                else
+                {
+                    issues.Add(new LocalizationKeyIssue(
+                        LocalizationKeyIssueKind.InvalidFormat, key, group.NeutralPath, group.NeutralPath, string.Empty, error));
+                }
+            }
+
+            foreach (var (culture, satellitePath) in group.Satellites)
+            {
+                foreach (var (key, value) in ReadStringEntries(satellitePath))
+                {
+                    if (!CompositeFormat.TryAnalyze(value, out var indices, out var error))
+                    {
+                        issues.Add(new LocalizationKeyIssue(
+                            LocalizationKeyIssueKind.InvalidFormat, key, group.NeutralPath, satellitePath, culture, error));
+                        continue;
+                    }
+
+                    if (neutral.TryGetValue(key, out var neutralIndices) && !neutralIndices.SequenceEqual(indices))
+                    {
+                        issues.Add(new LocalizationKeyIssue(
+                            LocalizationKeyIssueKind.PlaceholderMismatch, key, group.NeutralPath, satellitePath, culture,
+                            $"the neutral value uses {CompositeFormat.Describe(neutralIndices)}, but the '{culture}' value uses {CompositeFormat.Describe(indices)}"));
+                        continue;
+                    }
+
+                    AddGapIssue(issues, key, indices, group.NeutralPath, satellitePath, culture);
+                }
+            }
+        }
+
+        return issues;
+    }
+
+    private static void AddGapIssue(
+        List<LocalizationKeyIssue> issues, string key, List<int> indices, string neutralPath, string resourcePath, string culture)
+    {
+        var gaps = CompositeFormat.FindGaps(indices);
+        if (gaps.Count > 0)
+        {
+            issues.Add(new LocalizationKeyIssue(
+                LocalizationKeyIssueKind.PlaceholderGap, key, neutralPath, resourcePath, culture,
+                $"it uses {CompositeFormat.Describe(indices)} but never {CompositeFormat.Describe(gaps)}"));
+        }
+    }
+
+    /// <summary>
+    /// LOC014: compares the number of <c>Arg0</c>..<c>ArgN</c> a usage supplies with the number
+    /// of placeholders in the value it resolves to. Skipped when the usage's arguments can't be
+    /// counted statically, or the value isn't a valid format string (LOC012 reports that).
+    /// </summary>
+    private static IEnumerable<LocalizationKeyUsageIssue> CheckArguments(
+        ResourceGroup group, string keyName, XamlUsage usage, UsageContext context)
+    {
+        if (!context.CheckFormats ||
+            usage.ArgumentCount is not { } supplied ||
+            !group.Values.TryGetValue(keyName, out var value) ||
+            !CompositeFormat.TryAnalyze(value, out var indices, out _))
+        {
+            yield break;
+        }
+
+        var required = CompositeFormat.RequiredArgumentCount(indices);
+        if (supplied != required)
+        {
+            yield return new LocalizationKeyUsageIssue(
+                keyName, context.XamlPath, usage.LineNumber, LocalizationKeyUsageIssueKind.ArgumentCountMismatch,
+                $"the value uses {CompositeFormat.Describe(indices)} ({required} argument(s)), but this usage supplies {supplied}");
+        }
+    }
+
     private static List<LocalizationKeyUsageIssue> CheckXamlUsages(
         string rootDirectory,
         LocalizationCheckOptions options,
@@ -156,7 +257,7 @@ public static class LocalizationKeyChecker
             }
 
             text = BlankOutComments(text);
-            var context = new UsageContext(xamlPath, project, neutralGroups, ReadXmlnsMappings(text));
+            var context = new UsageContext(xamlPath, project, neutralGroups, ReadXmlnsMappings(text), options.CheckFormatStrings);
             foreach (var usage in ExtractLocalizedValueUsages(text))
             {
                 issues.AddRange(CheckUsage(usage, context));
@@ -257,9 +358,17 @@ public static class LocalizationKeyChecker
                 yield break;
             }
 
-            if (context.FindByBaseName(keyBaseName)?.KeySet.Contains(keyName) != true)
+            var keyGroup = context.FindByBaseName(keyBaseName);
+            if (keyGroup?.KeySet.Contains(keyName) != true)
             {
                 yield return Issue(key.Display, LocalizationKeyUsageIssueKind.UndefinedKey);
+            }
+            else
+            {
+                foreach (var issue in CheckArguments(keyGroup, keyName, usage, context))
+                {
+                    yield return issue;
+                }
             }
 
             yield break;
@@ -273,6 +382,13 @@ public static class LocalizationKeyChecker
             if (sourceGroup is not null && !sourceGroup.KeySet.Contains(fullKey))
             {
                 yield return Issue(fullKey, LocalizationKeyUsageIssueKind.UndefinedKey);
+            }
+            else if (sourceGroup is not null)
+            {
+                foreach (var issue in CheckArguments(sourceGroup, fullKey, usage, context))
+                {
+                    yield return issue;
+                }
             }
 
             yield break;
@@ -291,6 +407,11 @@ public static class LocalizationKeyChecker
                 break;
 
             case 1 when context.NeutralGroups[0].KeySet.Contains(fullKey):
+                foreach (var issue in CheckArguments(context.NeutralGroups[0], fullKey, usage, context))
+                {
+                    yield return issue;
+                }
+
                 break;
 
             default:
@@ -392,7 +513,8 @@ public static class LocalizationKeyChecker
         {
             var attributes = AttributePattern.Matches(match.Groups[1].Value)
                 .ToDictionary(m => m.Groups["name"].Value, m => m.Groups["value"].Value, StringComparer.Ordinal);
-            yield return CreateUsage(attributes, positional: null, GetLineNumber(text, match.Index));
+            yield return CreateUsage(
+                attributes, positional: null, GetLineNumber(text, match.Index), argumentsKnowable: match.Value.EndsWith("/>", StringComparison.Ordinal));
         }
     }
 
@@ -419,9 +541,29 @@ public static class LocalizationKeyChecker
         return CreateUsage(named, positional, lineNumber);
     }
 
-    private static XamlUsage CreateUsage(IReadOnlyDictionary<string, string> named, string? positional, int lineNumber)
+    /// <param name="argumentsKnowable">
+    /// False for a <c>&lt;lx:LocalizedValue&gt;...&lt;/lx:LocalizedValue&gt;</c> element with children, which may
+    /// carry an <c>Args</c> property element this scan doesn't read.
+    /// </param>
+    private static XamlUsage CreateUsage(
+        IReadOnlyDictionary<string, string> named, string? positional, int lineNumber, bool argumentsKnowable = true)
     {
         string? Get(string name) => named.TryGetValue(name, out var value) ? value : null;
+
+        // Arg0..Arg9 are counted as highest index + 1; an Args value (e.g. a StaticResource) is opaque.
+        int? argumentCount = null;
+        if (argumentsKnowable && !named.ContainsKey("Args"))
+        {
+            argumentCount = 0;
+            foreach (var name in named.Keys)
+            {
+                if (name.StartsWith("Arg", StringComparison.Ordinal) &&
+                    int.TryParse(name.AsSpan(3), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var index))
+                {
+                    argumentCount = Math.Max(argumentCount.Value, index + 1);
+                }
+            }
+        }
 
         var keyPrefix = Get("KeyPrefix");
         return new XamlUsage(
@@ -430,7 +572,8 @@ public static class LocalizationKeyChecker
             KeyPrefix: keyPrefix is null ? null : Unquote(keyPrefix),
             Source: Get("Source"),
             HasAssembly: named.ContainsKey("Assembly"),
-            HasKeyBinding: named.ContainsKey("KeyBinding"));
+            HasKeyBinding: named.ContainsKey("KeyBinding"),
+            ArgumentCount: argumentCount);
     }
 
     /// <summary>
@@ -579,9 +722,15 @@ public static class LocalizationKeyChecker
     /// The string keys of a resx, in document order, first occurrence only - the same entries
     /// (and order, which the generated constant names depend on) the generator sees.
     /// </summary>
-    private static List<string> ReadStringKeyList(string resxPath)
+    private static List<string> ReadStringKeyList(string resxPath) =>
+        ReadStringEntries(resxPath).Select(e => e.Key).ToList();
+
+    /// <summary>
+    /// The string entries of a resx - key and value - in document order, first occurrence only.
+    /// </summary>
+    private static List<(string Key, string Value)> ReadStringEntries(string resxPath)
     {
-        var keys = new List<string>();
+        var keys = new List<(string Key, string Value)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
         XDocument document;
@@ -614,7 +763,7 @@ public static class LocalizationKeyChecker
             var name = data.Attribute("name")?.Value;
             if (!string.IsNullOrEmpty(name) && seen.Add(name))
             {
-                keys.Add(name);
+                keys.Add((name, data.Element("value")?.Value ?? string.Empty));
             }
         }
 
@@ -661,7 +810,7 @@ public static class LocalizationKeyChecker
                     relativeDir = string.Empty;
                 }
 
-                var keys = kvp.Value.Neutral is null ? [] : ReadStringKeyList(kvp.Value.Neutral);
+                var entries = kvp.Value.Neutral is null ? [] : ReadStringEntries(kvp.Value.Neutral);
                 return new ResourceGroup(
                     kvp.Value.Neutral,
                     kvp.Value.Satellites,
@@ -669,7 +818,7 @@ public static class LocalizationKeyChecker
                     ResxNaming.DefaultNamespace(project.RootNamespace, relativeDir),
                     ResxNaming.DefaultClassName(kvp.Key.BaseName),
                     project.AssemblyName,
-                    keys);
+                    entries);
             })
             .ToList();
     }
@@ -724,14 +873,17 @@ public static class LocalizationKeyChecker
             string? @namespace,
             string className,
             string assemblyName,
-            List<string> keys)
+            List<(string Key, string Value)> entries)
         {
+            var keys = entries.Select(e => e.Key).ToList();
+
             NeutralPath = neutralPath;
             Satellites = satellites;
             BaseName = baseName;
             Namespace = @namespace;
             ClassName = className;
             Source = ResxNaming.Source(assemblyName, baseName);
+            Values = entries.ToDictionary(e => e.Key, e => e.Value, StringComparer.Ordinal);
             Keys = keys;
             KeySet = new HashSet<string>(keys, StringComparer.Ordinal);
 
@@ -752,6 +904,9 @@ public static class LocalizationKeyChecker
         public List<string> Keys { get; }
         public HashSet<string> KeySet { get; }
 
+        /// <summary>Neutral resx key → value.</summary>
+        public Dictionary<string, string> Values { get; }
+
         /// <summary>Generated constant name → resx key name.</summary>
         public Dictionary<string, string> KeysByIdentifier { get; }
     }
@@ -760,7 +915,8 @@ public static class LocalizationKeyChecker
         string XamlPath,
         ProjectInfo Project,
         IReadOnlyList<ResourceGroup> NeutralGroups,
-        IReadOnlyDictionary<string, string> Xmlns)
+        IReadOnlyDictionary<string, string> Xmlns,
+        bool CheckFormats)
     {
         public ResourceGroup? FindByBaseName(string baseName) =>
             NeutralGroups.FirstOrDefault(g => string.Equals(g.BaseName, baseName, StringComparison.Ordinal));
@@ -779,7 +935,8 @@ public static class LocalizationKeyChecker
         string? KeyPrefix,
         string? Source,
         bool HasAssembly,
-        bool HasKeyBinding);
+        bool HasKeyBinding,
+        int? ArgumentCount);
 
     private enum ResolvedKind
     {

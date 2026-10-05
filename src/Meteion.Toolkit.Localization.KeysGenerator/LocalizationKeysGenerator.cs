@@ -274,6 +274,11 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         builder.AppendLine();
 
         var identifiers = ResxNaming.AssignIdentifiers(entries.Select(e => e.Name));
+
+        // Every constant name is taken up front, so a generated Format helper can't collide with
+        // a resx key that happens to be called e.g. "FormatGreeting".
+        var usedIdentifiers = new HashSet<string>(identifiers, StringComparer.Ordinal) { ResxNaming.ResxSourceFieldName };
+
         for (var i = 0; i < entries.Count; i++)
         {
             var (name, value, line) = entries[i];
@@ -293,6 +298,15 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
             builder.AppendLine($"{indent}    /// </summary>");
             builder.AppendLine($"{indent}    public const string {identifier} = {QuoteLiteral(ResxNaming.QualifiedKey(assemblyName, baseName, name))};");
             builder.AppendLine();
+
+            // The helper calls ILocalizationService.GetFormattedString, so it's only emitted when the
+            // project references the abstractions assembly (the same condition as the marker attribute).
+            if (includeMarkerAttribute &&
+                CompositeFormat.TryAnalyze(value, out var placeholders, out _) &&
+                placeholders.Count > 0)
+            {
+                AppendFormatHelper(builder, indent, identifier, value, CompositeFormat.RequiredArgumentCount(placeholders), usedIdentifiers);
+            }
         }
 
         builder.AppendLine($"{indent}}}");
@@ -303,6 +317,46 @@ public sealed class LocalizationKeysGenerator : IIncrementalGenerator
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// Writes a <c>Format&lt;Key&gt;</c> helper for a resx entry that is a composite format string, so a
+    /// caller passes the right number of arguments by name instead of building an array by hand.
+    /// </summary>
+    /// <param name="builder">Builder receiving the generated source.</param>
+    /// <param name="indent">Indentation of the class the helper belongs to.</param>
+    /// <param name="identifier">The key's constant name; the helper formats that constant's key.</param>
+    /// <param name="value">The neutral resx value, shown in the doc comment.</param>
+    /// <param name="argumentCount">How many arguments the string needs.</param>
+    /// <param name="usedIdentifiers">Every member name in the class; the helper's name is added to it.</param>
+    private static void AppendFormatHelper(
+        StringBuilder builder, string indent, string identifier, string value, int argumentCount, HashSet<string> usedIdentifiers)
+    {
+        var helperName = "Format" + identifier.TrimStart('@');
+        var suffix = 2;
+        while (!usedIdentifiers.Add(helperName))
+        {
+            helperName = "Format" + identifier.TrimStart('@') + "_" + suffix++;
+        }
+
+        var arguments = string.Join(", ", Enumerable.Range(0, argumentCount).Select(n => "arg" + n));
+        var parameters = string.Join(", ", Enumerable.Range(0, argumentCount).Select(n => "object? arg" + n));
+
+        builder.AppendLine($"{indent}    /// <summary>");
+        builder.AppendLine($"{indent}    /// Resolves <see cref=\"{identifier}\"/> and formats it with {argumentCount} argument(s) using the");
+        builder.AppendLine($"{indent}    /// service's current culture. Neutral-culture value:");
+        AppendValueDoc(builder, indent, value);
+        builder.AppendLine($"{indent}    /// </summary>");
+        builder.AppendLine($"{indent}    /// <param name=\"service\">The localization service to resolve and format with.</param>");
+        for (var n = 0; n < argumentCount; n++)
+        {
+            builder.AppendLine($"{indent}    /// <param name=\"arg{n}\">The value for <c>{{{n}}}</c>.</param>");
+        }
+
+        builder.AppendLine($"{indent}    /// <returns>The formatted text.</returns>");
+        builder.AppendLine($"{indent}    public static string {helperName}(global::Meteion.Toolkit.Localization.Abstractions.ILocalizationService service, {parameters}) =>");
+        builder.AppendLine($"{indent}        service.GetFormattedString({identifier}, new object?[] {{ {arguments} }});");
+        builder.AppendLine();
     }
 
     /// <summary>

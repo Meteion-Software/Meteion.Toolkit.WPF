@@ -46,6 +46,13 @@ public enum LocalizationKeyUsageIssueKind
     /// is still skipped by LOC009.
     /// </summary>
     IgnoreWithoutReason,
+
+    /// <summary>
+    /// LOC014: the number of <c>Arg0</c>..<c>ArgN</c> a usage supplies doesn't match the number of
+    /// placeholders in the resx value it resolves to. Only checked when the usage's arguments can
+    /// be counted statically (an <c>Args</c> value or a property-element usage can't be).
+    /// </summary>
+    ArgumentCountMismatch,
 }
 
 /// <summary>
@@ -57,11 +64,13 @@ public enum LocalizationKeyUsageIssueKind
 /// <param name="XamlFilePath">Path to the XAML file the usage was found in.</param>
 /// <param name="LineNumber">The 1-based line number the usage appears on, when available.</param>
 /// <param name="Kind">What's wrong with the usage.</param>
+/// <param name="Detail">What exactly is wrong, for LOC014; null otherwise.</param>
 public sealed record LocalizationKeyUsageIssue(
     string Key,
     string XamlFilePath,
     int LineNumber,
-    LocalizationKeyUsageIssueKind Kind = LocalizationKeyUsageIssueKind.UndefinedKey)
+    LocalizationKeyUsageIssueKind Kind = LocalizationKeyUsageIssueKind.UndefinedKey,
+    string? Detail = null)
 {
     /// <summary>The diagnostic code, e.g. "LOC003".</summary>
     public string Code => Kind switch
@@ -74,6 +83,7 @@ public sealed record LocalizationKeyUsageIssue(
         LocalizationKeyUsageIssueKind.SourceWithAssembly => "LOC008",
         LocalizationKeyUsageIssueKind.UnlocalizedLiteral => "LOC009",
         LocalizationKeyUsageIssueKind.IgnoreWithoutReason => "LOC010",
+        LocalizationKeyUsageIssueKind.ArgumentCountMismatch => "LOC014",
         _ => throw new ArgumentOutOfRangeException(nameof(Kind), Kind, null),
     };
 

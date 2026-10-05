@@ -61,6 +61,55 @@ public class LocalizedBindingExtension : MarkupExtension
     /// </summary>
     public object? TargetNullValue { get; set; } = DependencyProperty.UnsetValue;
 
+    /// <summary>
+    /// Optional format arguments - see <see cref="LocalizedValueExtension.Args"/>. Can't be
+    /// combined with <see cref="Arg0"/>..<see cref="Arg9"/>.
+    /// </summary>
+    public MultiBinding? Args { get; set; }
+
+    // Backing store for the Arg0..Arg9 shorthand; a null entry means "not set".
+    private readonly BindingBase?[] _args = new BindingBase?[FormatArguments.ShorthandCount];
+
+    /// <summary>Format argument {0}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg0 { get => _args[0]; set => _args[0] = value; }
+
+    /// <summary>Format argument {1}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg1 { get => _args[1]; set => _args[1] = value; }
+
+    /// <summary>Format argument {2}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg2 { get => _args[2]; set => _args[2] = value; }
+
+    /// <summary>Format argument {3}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg3 { get => _args[3]; set => _args[3] = value; }
+
+    /// <summary>Format argument {4}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg4 { get => _args[4]; set => _args[4] = value; }
+
+    /// <summary>Format argument {5}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg5 { get => _args[5]; set => _args[5] = value; }
+
+    /// <summary>Format argument {6}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg6 { get => _args[6]; set => _args[6] = value; }
+
+    /// <summary>Format argument {7}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg7 { get => _args[7]; set => _args[7] = value; }
+
+    /// <summary>Format argument {8}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg8 { get => _args[8]; set => _args[8] = value; }
+
+    /// <summary>Format argument {9}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg9 { get => _args[9]; set => _args[9] = value; }
+
     /// <summary>Creates the extension with its properties to be set by the caller.</summary>
     public LocalizedBindingExtension() { }
 
@@ -109,17 +158,27 @@ public class LocalizedBindingExtension : MarkupExtension
         // Unlike LocalizedValueExtension, nothing is pushed into the target, so there's no
         // DependencyProperty / CLR property / template distinction to make - the same
         // MultiBinding works for any BindingBase-typed target.
-        var multiBinding = new MultiBinding
+        var formatArgs = FormatArguments.Collect(Args, _args, nameof(LocalizedBindingExtension));
+
+        MultiBinding multiBinding;
+        if (formatArgs.Count > 0)
         {
-            Converter = new DynamicKeyLocalizationConverter(request),
-            Mode = BindingMode.OneWay,
-        };
-        multiBinding.Bindings.Add(KeyBinding);
-        multiBinding.Bindings.Add(new Binding(nameof(CultureChangeTrigger.Value))
+            multiBinding = FormatArguments.CreateMultiBinding(request, null, KeyBinding, formatArgs);
+        }
+        else
         {
-            Source = new CultureChangeTrigger(request.Service),
-            Mode = BindingMode.OneWay,
-        });
+            multiBinding = new MultiBinding
+            {
+                Converter = new DynamicKeyLocalizationConverter(request),
+                Mode = BindingMode.OneWay,
+            };
+            multiBinding.Bindings.Add(KeyBinding);
+            multiBinding.Bindings.Add(new Binding(nameof(CultureChangeTrigger.Value))
+            {
+                Source = new CultureChangeTrigger(request.Service),
+                Mode = BindingMode.OneWay,
+            });
+        }
 
         return multiBinding.ProvideValue(serviceProvider);
     }

@@ -132,4 +132,7 @@
   <data name="Feature_Gamma" xml:space="preserve">
     <value>Gamma Feature</value>
   </data>
+  <data name="Summary_Items" xml:space="preserve">
+    <value>{0} has {1:N0} items ({2})</value>
+  </data>
 </root>

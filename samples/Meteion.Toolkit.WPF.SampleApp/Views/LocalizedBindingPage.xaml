@@ -42,6 +42,46 @@
             </DataGrid.Columns>
         </DataGrid>
 
+        <TextBlock
+            Margin="0,0,0,5"
+            FontWeight="Bold"
+            Text="Formatting example" />
+
+        <!--
+            The localized text is a composite format string ("{0} has {1:N0} items ({2})"). Args
+            fills its placeholders from bindings, in order, using the current culture - so the
+            number groups differently per language - and re-formats live on a culture change.
+            Arg0..Arg9 are an inline alternative to Args for a few arguments: bindings, or plain
+            text literals (Arg2 below). Switch the language from the home page and come back.
+        -->
+        <TextBlock Margin="0,0,0,5">
+            <TextBlock.Text>
+                <lx:LocalizedValue
+                    Key="Summary_Items"
+                    Arg0="{Binding OwnerName}"
+                    Arg1="{Binding ItemCount}"
+                    Arg2="literal"
+                    Source="{x:Static keys:ResourcesKeys.ResxSource}" />
+            </TextBlock.Text>
+        </TextBlock>
+
+        <!--
+            CultureAwareFormat takes several values with a composite FormatString; each child of
+            Values is one placeholder, formatted with the current culture.
+        -->
+        <TextBlock Margin="0,0,0,10">
+            <TextBlock.Text>
+                <lx:CultureAwareFormat FormatString="{}{0:C} of {1:C}">
+                    <lx:CultureAwareFormat.Values>
+                        <MultiBinding>
+                            <Binding Path="Spent" />
+                            <Binding Path="Budget" />
+                        </MultiBinding>
+                    </lx:CultureAwareFormat.Values>
+                </lx:CultureAwareFormat>
+            </TextBlock.Text>
+        </TextBlock>
+
         <Button
             HorizontalAlignment="Left"
             Command="{Binding GoBackCommand}"

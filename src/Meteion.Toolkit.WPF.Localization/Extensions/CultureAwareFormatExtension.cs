@@ -27,6 +27,14 @@ public class CultureAwareFormatExtension : MarkupExtension
     /// <summary>The standard/custom .NET format string (e.g. "C", "N2", "d") to apply.</summary>
     public string? FormatString { get; set; }
 
+    /// <summary>
+    /// Several bindings to format together with a composite <see cref="FormatString"/> such as
+    /// <c>"{0:C} of {1:C}"</c> - each child binding of this <see cref="MultiBinding"/> is one
+    /// placeholder, in order. Set with property-element syntax. Can't be combined with
+    /// <see cref="Value"/>.
+    /// </summary>
+    public MultiBinding? Values { get; set; }
+
     /// <summary>Creates the extension with <see cref="Value"/> to be set by the caller.</summary>
     public CultureAwareFormatExtension()
     {
@@ -58,6 +66,11 @@ public class CultureAwareFormatExtension : MarkupExtension
             return $"[{FormatString}]";
         }
 
+        if (Values != null)
+        {
+            return ProvideCompositeValue(serviceProvider);
+        }
+
         if (Value == null)
         {
             throw new LocalizationConfigurationException(
@@ -78,6 +91,51 @@ public class CultureAwareFormatExtension : MarkupExtension
             Source = new CultureChangeTrigger(loc),
             Mode = BindingMode.OneWay,
         });
+
+        return multiBinding.ProvideValue(serviceProvider);
+    }
+
+    /// <summary>
+    /// The <see cref="Values"/> path: formats several bindings with one composite format string.
+    /// </summary>
+    /// <param name="serviceProvider">The XAML service provider for the current usage.</param>
+    /// <returns>The binding expression for the target.</returns>
+    /// <exception cref="LocalizationConfigurationException">
+    /// <see cref="Value"/> is also set, or <see cref="FormatString"/> isn't.
+    /// </exception>
+    private object ProvideCompositeValue(IServiceProvider serviceProvider)
+    {
+        if (Value != null)
+        {
+            throw new LocalizationConfigurationException(
+                $"{nameof(CultureAwareFormatExtension)}.{nameof(Value)} and .{nameof(Values)} can't both be set - " +
+                $"use {nameof(Values)} with a composite {nameof(FormatString)}, or {nameof(Value)} on its own.");
+        }
+
+        if (string.IsNullOrEmpty(FormatString))
+        {
+            throw new LocalizationConfigurationException(
+                $"{nameof(CultureAwareFormatExtension)}.{nameof(FormatString)} must be set to a composite " +
+                $"format string (e.g. \"{{0:C}} of {{1:C}}\") when {nameof(Values)} is used.");
+        }
+
+        var loc = LocalizationServiceLocator.Resolve<ILocalizationService>();
+
+        var multiBinding = new MultiBinding
+        {
+            Converter = new CultureAwareCompositeFormatConverter(loc, FormatString, LocalizationRequest.ResolveMissingKeyBehavior()),
+            Mode = BindingMode.OneWay,
+        };
+        multiBinding.Bindings.Add(new Binding(nameof(CultureChangeTrigger.Value))
+        {
+            Source = new CultureChangeTrigger(loc),
+            Mode = BindingMode.OneWay,
+        });
+
+        foreach (var value in Values!.Bindings)
+        {
+            multiBinding.Bindings.Add(value);
+        }
 
         return multiBinding.ProvideValue(serviceProvider);
     }

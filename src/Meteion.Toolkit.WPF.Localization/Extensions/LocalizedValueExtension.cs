@@ -1,4 +1,4 @@
-﻿using Meteion.Toolkit.Localization.Abstractions;
+using Meteion.Toolkit.Localization.Abstractions;
 using System.ComponentModel;
 using System.Reflection;
 using System.Windows;
@@ -62,6 +62,59 @@ public class LocalizedValueExtension : MarkupExtension
     /// </summary>
     public string? Source { get; set; }
 
+    /// <summary>
+    /// Optional format arguments: the resolved text is treated as a composite format string
+    /// (e.g. <c>"Hello {0}, you have {1:N0} items"</c>) and formatted with each child binding of
+    /// this <see cref="MultiBinding"/>, in order, using the localization service's current culture.
+    /// The text re-formats when an argument or the culture changes. Set it with property-element
+    /// syntax; for a few arguments, <see cref="Arg0"/>..<see cref="Arg9"/> are an inline
+    /// alternative. Can't be combined with them.
+    /// </summary>
+    public MultiBinding? Args { get; set; }
+
+    // Backing store for the Arg0..Arg9 shorthand; a null entry means "not set".
+    private readonly BindingBase?[] _args = new BindingBase?[FormatArguments.ShorthandCount];
+
+    /// <summary>Format argument {0}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg0 { get => _args[0]; set => _args[0] = value; }
+
+    /// <summary>Format argument {1}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg1 { get => _args[1]; set => _args[1] = value; }
+
+    /// <summary>Format argument {2}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg2 { get => _args[2]; set => _args[2] = value; }
+
+    /// <summary>Format argument {3}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg3 { get => _args[3]; set => _args[3] = value; }
+
+    /// <summary>Format argument {4}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg4 { get => _args[4]; set => _args[4] = value; }
+
+    /// <summary>Format argument {5}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg5 { get => _args[5]; set => _args[5] = value; }
+
+    /// <summary>Format argument {6}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg6 { get => _args[6]; set => _args[6] = value; }
+
+    /// <summary>Format argument {7}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg7 { get => _args[7]; set => _args[7] = value; }
+
+    /// <summary>Format argument {8}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg8 { get => _args[8]; set => _args[8] = value; }
+
+    /// <summary>Format argument {9}: a binding, or a literal text constant. Inline shorthand for <see cref="Args"/>.</summary>
+    [TypeConverter(typeof(ConstantArgumentConverter))]
+    public BindingBase? Arg9 { get => _args[9]; set => _args[9] = value; }
+
     /// <summary>Creates the extension for a fixed resource key.</summary>
     /// <param name="key">The resource key to resolve.</param>
     public LocalizedValueExtension(string key) : this(key, null) { }
@@ -102,6 +155,7 @@ public class LocalizedValueExtension : MarkupExtension
         }
 
         var request = CreateRequest(serviceProvider);
+        var formatArgs = FormatArguments.Collect(Args, _args, nameof(LocalizedValueExtension));
 
         var target = serviceProvider.GetService(typeof(IProvideValueTarget)) as IProvideValueTarget;
 
@@ -113,7 +167,11 @@ public class LocalizedValueExtension : MarkupExtension
             // element itself, which a second extension on the same element silently overwrote
             // (e.g. a ContentDialog's Title, PrimaryButtonText and SecondaryButtonText).
             BindingBase binding;
-            if (KeyBinding != null)
+            if (formatArgs.Count > 0)
+            {
+                binding = FormatArguments.CreateMultiBinding(request, Key, KeyBinding, formatArgs);
+            }
+            else if (KeyBinding != null)
             {
                 var multiBinding = new MultiBinding
                 {
@@ -154,6 +212,14 @@ public class LocalizedValueExtension : MarkupExtension
             // A plain CLR property (e.g. Run.Text) can't take a binding, so a proxy property on
             // the element is bound instead and pushes each new value into the CLR property. That
             // proxy is one per element, so it only suits a single such property per element.
+            if (formatArgs.Count > 0)
+            {
+                // The argument bindings resolve against the element's DataContext like any other,
+                // so one multi-binding covers the key (fixed or bound) and every argument.
+                var formattedBinding = FormatArguments.CreateMultiBinding(request, Key, KeyBinding, formatArgs);
+                return LocalizedValueTargetBinder.Bind(depObj, target.TargetProperty, formattedBinding);
+            }
+
             if (KeyBinding != null)
             {
                 var dynamicProxy = new DynamicToolkitLocalizationProxy(request);
@@ -173,16 +239,17 @@ public class LocalizedValueExtension : MarkupExtension
         // element — there's no DependencyObject there to hang a live binding off, and (unlike
         // the DependencyProperty case above) no deferred-loader support to fall back on either.
         // Outside a template it means IProvideValueTarget wasn't available at all.
-        if (KeyBinding != null)
+        if (KeyBinding != null || formatArgs.Count > 0)
         {
-            // Never fall back to a silent empty string here — a KeyBinding truly cannot be
-            // resolved without a live element to bind the key source against, so say so.
+            // Never fall back to a silent empty string here — a KeyBinding or format argument
+            // truly cannot be resolved without a live element to bind the source against, so say so.
             throw new LocalizationConfigurationException(
-                $"{nameof(LocalizedValueExtension)}.{nameof(KeyBinding)} can't be resolved here: the " +
-                "target property is a plain CLR property (not a DependencyProperty) with no live, " +
-                "connected element to bind the key source against — most likely because this is used " +
-                "inside a DataTemplate or ControlTemplate. Target a DependencyProperty instead (e.g. " +
-                "TextBlock.Text rather than Run.Text), or use a literal Key.");
+                $"{nameof(LocalizedValueExtension)}.{nameof(KeyBinding)} and format arguments ({nameof(Args)}, " +
+                "Arg0..Arg9) can't be resolved here: the target property is a plain CLR property (not a " +
+                "DependencyProperty) with no live, connected element to bind the source against — most " +
+                "likely because this is used inside a DataTemplate or ControlTemplate. Target a " +
+                "DependencyProperty instead (e.g. TextBlock.Text rather than Run.Text), or use a literal " +
+                "Key with no arguments.");
         }
 
         // Literal Key with no live target: resolved once, non-live. Inside a template this
@@ -235,7 +302,7 @@ internal static class LocalizedValueTargetBinder
     /// <param name="realTargetMember">The <see cref="DependencyProperty"/> or <see cref="PropertyInfo"/> to update.</param>
     /// <param name="binding">The binding that supplies the localized text.</param>
     /// <returns>The initial localized text, or an empty string if none is available yet.</returns>
-    public static string Bind(DependencyObject targetObject, object realTargetMember, Binding binding)
+    public static string Bind(DependencyObject targetObject, object realTargetMember, BindingBase binding)
     {
         targetObject.SetValue(RealTargetProperty, realTargetMember);
         BindingOperations.SetBinding(targetObject, ProxyValueProperty, binding);

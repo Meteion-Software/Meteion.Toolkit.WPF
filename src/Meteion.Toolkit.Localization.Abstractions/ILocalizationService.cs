@@ -38,6 +38,45 @@ public interface ILocalizationService : INotifyPropertyChanged
     string GetString(string key, string source);
 
     /// <summary>
+    /// <see cref="GetString(string)"/>, then applies <paramref name="args"/> to the result as a
+    /// composite format string (e.g. <c>"Hello {0}, you have {1:N0} items"</c>) using
+    /// <see cref="CurrentCulture"/>. A bad format string or too few arguments is handled per
+    /// <see cref="LocalizationOptions.MissingKeyBehavior"/>: rethrown as a
+    /// <see cref="LocalizationConfigurationException"/>, or returned as the unformatted text or an
+    /// empty string.
+    /// </summary>
+    /// <remarks>
+    /// This has its own name rather than being a <c>GetString</c> overload so a string argument
+    /// can never be mistaken for the <c>source</c> parameter of <see cref="GetString(string, string)"/>.
+    /// The same reason keeps the <c>Assembly</c> and <c>source</c> variants below from taking
+    /// <see langword="params"/>: they take the arguments as an explicit array.
+    /// </remarks>
+    /// <param name="key">The qualified or unqualified key to resolve.</param>
+    /// <param name="args">The values for the format string's placeholders.</param>
+    /// <returns>The formatted string for <see cref="CurrentCulture"/>.</returns>
+    string GetFormattedString(string key, params object?[] args);
+
+    /// <summary>
+    /// <see cref="GetString(string, Assembly)"/>, then applies <paramref name="args"/> as
+    /// described on <see cref="GetFormattedString(string, object?[])"/>.
+    /// </summary>
+    /// <param name="key">The qualified or unqualified key to resolve.</param>
+    /// <param name="resourceAssembly">The assembly whose resx supplies the value.</param>
+    /// <param name="args">The values for the format string's placeholders.</param>
+    /// <returns>The formatted string for <see cref="CurrentCulture"/>.</returns>
+    string GetFormattedString(string key, Assembly resourceAssembly, object?[] args);
+
+    /// <summary>
+    /// <see cref="GetString(string, string)"/>, then applies <paramref name="args"/> as
+    /// described on <see cref="GetFormattedString(string, object?[])"/>.
+    /// </summary>
+    /// <param name="key">The unqualified key to resolve.</param>
+    /// <param name="source">The <c>&lt;AssemblyName&gt;/&lt;ResourceBaseName&gt;</c> identity of the resx to read.</param>
+    /// <param name="args">The values for the format string's placeholders.</param>
+    /// <returns>The formatted string for <see cref="CurrentCulture"/>.</returns>
+    string GetFormattedString(string key, string source, object?[] args);
+
+    /// <summary>
     /// The culture used for lookups. Setting a different culture raises <see cref="CultureChanged"/>;
     /// setting the current culture again does nothing.
     /// </summary>

@@ -132,4 +132,7 @@
   <data name="Feature_Gamma" xml:space="preserve">
     <value>ガンマ機能</value>
   </data>
+  <data name="Summary_Items" xml:space="preserve">
+    <value>{0}には{1:N0}個の項目があります（{2}）</value>
+  </data>
 </root>

@@ -216,4 +216,81 @@ public class LocalizationKeysGeneratorTests
         Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Contains("ResxSource_2", diagnostic.GetMessage());
     }
-}
+
+    // Compiles the generated source against the abstractions assembly, so a helper that calls
+    // GetFormattedString is checked for real (overload resolution included), not just parsed.
+    private static void AssertCompiles(string generated)
+    {
+        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+            .Split(Path.PathSeparator)
+            .Select(p => Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(p));
+        var compilation = CSharpCompilation.Create(
+            "GeneratedCheck",
+            [CSharpSyntaxTree.ParseText(generated)],
+            references,
+            new CSharpCompilationOptions(Microsoft.CodeAnalysis.OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: Microsoft.CodeAnalysis.NullableContextOptions.Enable));
+
+        var errors = compilation.GetDiagnostics()
+            .Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
+            .ToList();
+        Assert.True(errors.Count == 0, $"Generated source failed to compile:{Environment.NewLine}{string.Join(Environment.NewLine, errors)}{Environment.NewLine}{generated}");
+    }
+
+    [Fact]
+    public void FormattedEntry_GeneratesTypedFormatHelper()
+    {
+        var resx = Resx(("Greeting", "Hello {0}, you have {1:N0} items", null), ("Plain", "No placeholders", null));
+
+        var generated = Assert.Single(GeneratorTestHarness.Run([("Resources.resx", resx)])).Value;
+
+        Assert.Contains("public static string FormatGreeting(global::Meteion.Toolkit.Localization.Abstractions.ILocalizationService service, object? arg0, object? arg1)", generated);
+        Assert.Contains("service.GetFormattedString(Greeting, new object?[] { arg0, arg1 });", generated);
+        Assert.DoesNotContain("FormatPlain", generated);
+        AssertCompiles(generated);
+    }
+
+    [Fact]
+    public void FormattedEntry_ArgumentCountIsHighestIndexPlusOne()
+    {
+        var resx = Resx(("Skips", "{0} and {2}", null), ("Repeats", "{0} {0} {0}", null));
+
+        var generated = Assert.Single(GeneratorTestHarness.Run([("Resources.resx", resx)])).Value;
+
+        Assert.Contains("FormatSkips(global::Meteion.Toolkit.Localization.Abstractions.ILocalizationService service, object? arg0, object? arg1, object? arg2)", generated);
+        Assert.Contains("FormatRepeats(global::Meteion.Toolkit.Localization.Abstractions.ILocalizationService service, object? arg0)", generated);
+        AssertCompiles(generated);
+    }
+
+    [Fact]
+    public void FormattedEntry_EscapedBracesAndInvalidFormat_GenerateNoHelper()
+    {
+        var resx = Resx(("Escaped", "Use {{0}} literally", null), ("Broken", "Oops {0", null));
+
+        var generated = Assert.Single(GeneratorTestHarness.Run([("Resources.resx", resx)])).Value;
+
+        Assert.DoesNotContain("FormatEscaped", generated);
+        Assert.DoesNotContain("FormatBroken", generated);
+        AssertCompiles(generated);
+    }
+
+    [Fact]
+    public void FormattedEntry_HelperNameCollidingWithAKey_IsDisambiguated()
+    {
+        var resx = Resx(("Greeting", "Hi {0}", null), ("FormatGreeting", "Other", null));
+
+        var generated = Assert.Single(GeneratorTestHarness.Run([("Resources.resx", resx)])).Value;
+
+        Assert.Contains("public const string FormatGreeting =", generated);
+        Assert.Contains("public static string FormatGreeting_2(", generated);
+        AssertCompiles(generated);
+    }
+
+    [Fact]
+    public void FormattedEntry_WithoutAbstractionsReference_GeneratesNoHelper()
+    {
+        var resx = Resx(("Greeting", "Hi {0}", null));
+
+        var generated = Assert.Single(GeneratorTestHarness.Run([("Resources.resx", resx)], referenceAbstractions: false)).Value;
+
+        Assert.DoesNotContain("FormatGreeting", generated);
+    }}
