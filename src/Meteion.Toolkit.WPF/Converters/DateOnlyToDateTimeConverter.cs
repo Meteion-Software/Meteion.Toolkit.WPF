@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿#if NET6_0_OR_GREATER
+using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
@@ -53,3 +54,4 @@ public class DateOnlyToDateTimeConverter : IValueConverter
         return Convert(value, targetType, parameter, culture);
     }
 }
+#endif
