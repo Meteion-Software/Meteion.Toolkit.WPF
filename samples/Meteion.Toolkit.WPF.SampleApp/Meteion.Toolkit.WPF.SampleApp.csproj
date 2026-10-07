@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Dialogs\Meteion.Toolkit.WPF.Dialogs.csproj" />
     <ProjectReference Include="..\..\src\Meteion.Toolkit.MVVM\Meteion.Toolkit.WPF.MVVM.csproj" />
     <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Hosting\Meteion.Toolkit.WPF.Hosting.csproj" />
     <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Localization\Meteion.Toolkit.WPF.Localization.csproj" />

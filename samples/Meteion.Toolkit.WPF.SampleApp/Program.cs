@@ -1,5 +1,6 @@
 ﻿
 using Meteion.Toolkit.MVVM.Services;
+using Meteion.Toolkit.WPF.Dialogs;
 using Meteion.Toolkit.WPF.Hosting;
 using Meteion.Toolkit.WPF.Localization;
 using Meteion.Toolkit.WPF.MVVM;
@@ -52,6 +53,8 @@ public static class Program
             // We can scan from the assembly, but this is slow and uses reflection.
             builder.AddFromAssembly(typeof(Program).Assembly);
         });
+
+        builder.Services.AddMeteionDialogs();
 
         // Allow us to track our current scope id for debugging purposes.
         builder.Services.AddScoped<IScopeIdService, ScopeIdService>();

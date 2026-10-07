@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A plain .NET Framework WPF app (no hosting), to exercise the net48 build of Meteion.Toolkit.WPF.Dialogs. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Meteion.Toolkit.WPF.Dialogs\Meteion.Toolkit.WPF.Dialogs.csproj" />
+  </ItemGroup>
+
+</Project>

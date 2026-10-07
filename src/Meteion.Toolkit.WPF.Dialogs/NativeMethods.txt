@@ -1,0 +1,8 @@
+FileOpenDialog
+IFileOpenDialog
+IShellItem
+IShellItemArray
+SHCreateItemFromParsingName
+GetActiveWindow
+FILEOPENDIALOGOPTIONS
+SIGDN

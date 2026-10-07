@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Description>UI-framework-agnostic abstractions (IDialogService and option types) for showing open, save, and folder dialogs from view models.</Description>
+  </PropertyGroup>
+
+</Project>

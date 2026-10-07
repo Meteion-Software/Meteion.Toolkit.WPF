@@ -117,6 +117,12 @@ public partial class HomePageViewModel : INotifyPropertyChanged
     [RelayCommand]
     public Task NavigateToLocalizedBindingPage() => _navService.NavigateTo<LocalizedBindingPageViewModel>();
 
+    /// <summary>
+    /// Navigates to the Dialogs example (open / save / folder pickers via IDialogService).
+    /// </summary>
+    [RelayCommand]
+    public Task NavigateToDialogsPage() => _navService.NavigateTo<DialogsPageViewModel>();
+
     [RelayCommand]
     public void SwitchLanguage()
     {

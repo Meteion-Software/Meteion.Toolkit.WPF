@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Dialogs/">
+    <Project Path="src/Meteion.Toolkit.Dialogs.Abstractions/Meteion.Toolkit.Dialogs.Abstractions.csproj" />
+    <Project Path="src/Meteion.Toolkit.WPF.Dialogs/Meteion.Toolkit.WPF.Dialogs.csproj" />
+  </Folder>
   <Folder Name="/Hosting/">
     <Project Path="src/Meteion.Toolkit.WPF.Hosting/Meteion.Toolkit.WPF.Hosting.csproj" />
     <Project Path="tests/Meteion.Toolkit.WPF.Hosting.Tests/Meteion.Toolkit.WPF.Hosting.Tests.csproj" />
@@ -29,6 +33,7 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="samples/Meteion.Toolkit.WPF.SampleApp/Meteion.Toolkit.WPF.SampleApp.csproj" />
+  <Project Path="samples/Meteion.Toolkit.WPF.SampleApp.Net48/Meteion.Toolkit.WPF.SampleApp.Net48.csproj" />
   <Project Path="src/Meteion.Toolkit.WPF/Meteion.Toolkit.WPF.csproj" />
   <Project Path="tests/Meteion.Toolkit.WPF.Tests/Meteion.Toolkit.WPF.Tests.csproj" />
 </Solution>
