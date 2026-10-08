@@ -84,7 +84,7 @@ public sealed class DefaultFilesystemDialogService : IFilesystemDialogService
 
         if (options.Filter is not null)
         {
-            dialog.Filter = options.Filter;
+            dialog.Filter = options.Filter.ToString();
         }
 
         if (options.DefaultExtension is not null)

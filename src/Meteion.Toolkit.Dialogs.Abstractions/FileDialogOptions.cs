@@ -1,3 +1,5 @@
+﻿using Meteion.Toolkit.Dialogs.Abstractions;
+
 namespace Meteion.Toolkit.Dialogs;
 
 /// <summary>
@@ -15,10 +17,9 @@ public record FileDialogOptions
     public string? FileName { get; init; }
 
     /// <summary>
-    /// Gets the file type filter in the classic <c>"Description|*.ext;*.ext2|Description|*.*"</c> format
-    /// (an even number of <c>|</c>-separated segments), or <see langword="null"/> for no filter.
+    /// Gets the file type filter in an easier-to-understand format (or <see langword="null"/> for no filter)
     /// </summary>
-    public string? Filter { get; init; }
+    public FileDialogFilter? Filter { get; init; }
 
     /// <summary>Gets the 1-based index of the initially selected filter.</summary>
     public int FilterIndex { get; init; } = 1;
