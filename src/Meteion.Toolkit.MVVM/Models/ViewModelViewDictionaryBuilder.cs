@@ -92,16 +92,17 @@ public class ViewModelViewDictionaryBuilder<TUIType>
     /// <typeparam name="T_ViewModel">The view model type.</typeparam>
     /// <typeparam name="T_View">The view type that displays the view model.</typeparam>
     /// <param name="lifetime">The service lifetime to register the view model and view with.</param>
-    public void Add<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Scoped)
+    public void Add<T_ViewModel, T_View>(ServiceLifetime? lifetime = null)
         where T_ViewModel : class, INotifyPropertyChanged
         where T_View : TUIType
     {
-        _views.Add(typeof(T_ViewModel), new ViewModelRecord(typeof(T_View), lifetime));
+        _views.Add(typeof(T_ViewModel), new ViewModelRecord(typeof(T_View), ViewModelLifetime.Resolve(typeof(T_ViewModel), lifetime)));
     }
 
     /// <summary>
     /// Scan the assembly for all concrete TUIType views that have a corresponding ViewModel and add them to the
-    /// dictionary with a scoped lifetime. A ViewModel matches a view by name:
+    /// dictionary with the lifetime from the view model's <see cref="ViewModelOptionsAttribute"/>, or scoped when the
+    /// attribute is absent. A ViewModel matches a view by name:
     /// - {ViewType}ViewModel for any view
     /// - {ViewType}PageViewModel when TUIType is Page
     /// - {ViewType}WindowViewModel when TUIType is Window
@@ -142,7 +143,7 @@ public class ViewModelViewDictionaryBuilder<TUIType>
             var viewModelType = viewModelTypes.FirstOrDefault(x => ruleFunc(x, viewType));
             if (viewModelType != null)
             {
-                _views.Add(viewModelType, new ViewModelRecord(viewType, ServiceLifetime.Scoped));
+                _views.Add(viewModelType, new ViewModelRecord(viewType, ViewModelLifetime.Resolve(viewModelType, null)));
                 _logger?.LogInformation("Added ViewModel {ViewModelType} for view type {ViewType}", viewModelType.FullName, viewType.FullName);
             }
             else

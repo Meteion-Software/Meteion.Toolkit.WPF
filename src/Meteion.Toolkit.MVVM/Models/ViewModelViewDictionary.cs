@@ -39,10 +39,10 @@ public sealed class ViewModelViewDictionary<TUIType> : Dictionary<Type, ViewMode
     /// <typeparam name="T_ViewModel">The view model type, used as the dictionary key.</typeparam>
     /// <typeparam name="T_View">The view type that displays the view model.</typeparam>
     /// <param name="lifetime">The service lifetime to register the view model and view with.</param>
-    public void Add<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Scoped)
+    public void Add<T_ViewModel, T_View>(ServiceLifetime? lifetime = null)
         where T_ViewModel : class, INotifyPropertyChanged, new()
         where T_View : TUIType
     {
-        Add(typeof(T_ViewModel), new ViewModelRecord(typeof(T_View), lifetime));
+        Add(typeof(T_ViewModel), new ViewModelRecord(typeof(T_View), ViewModelLifetime.Resolve(typeof(T_ViewModel), lifetime)));
     }
 }

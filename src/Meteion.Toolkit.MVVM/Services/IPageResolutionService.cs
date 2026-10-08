@@ -27,8 +27,11 @@ public interface IPageResolutionService
     /// </summary>
     /// <typeparam name="T_ViewModel">The view model type, used as the lookup key.</typeparam>
     /// <typeparam name="T_View">The page that displays the view model.</typeparam>
-    /// <param name="lifetime">The service lifetime of the page and view model.</param>
-    void AddPage<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    /// <param name="lifetime">
+    /// The service lifetime of the page and view model. When null, the view model's
+    /// <see cref="ViewModelOptionsAttribute"/> lifetime is used if present, otherwise transient.
+    /// </param>
+    void AddPage<T_ViewModel, T_View>(ServiceLifetime? lifetime = null)
         where T_ViewModel : INotifyPropertyChanged
         where T_View : Page;
 

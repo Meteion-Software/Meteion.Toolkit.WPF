@@ -1,6 +1,7 @@
 ﻿using Meteion.Toolkit.MVVM.Services;
 using Meteion.Toolkit.WPF.MVVM.Tests.Fixtures;
 using Meteion.Toolkit.WPF.MVVM.Tests.TestHelpers;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace Meteion.Toolkit.WPF.MVVM.Tests.Services;
@@ -37,13 +38,12 @@ public class NavigationServiceTests
     }
 
     [StaFact]
-    public void CanGoBack_ReflectsFrameState()
+    public void CanGoBack_NothingNavigatedYet_IsFalse()
     {
         var service = new NavigationService(new FakePageResolutionService());
-        var frame = new Frame();
-        service.Initialize(frame);
+        service.Initialize(new Frame());
 
-        Assert.Equal(frame.CanGoBack, service.CanGoBack);
+        Assert.False(service.CanGoBack);
     }
 
     [StaFact]
@@ -138,17 +138,19 @@ public class NavigationServiceTests
 
         var frame = new Frame();
         var pageA = new FakePageA { DataContext = vmA };
-        frame.Content = pageA;
-        DispatcherTestHelper.DrainDispatcher();
-
         var pageB = new FakePageB();
         var pageService = new FakePageResolutionService();
+        pageService.PageTypesByViewModelType[typeof(FakeViewModelA)] = typeof(FakePageA);
+        pageService.PageFactoriesByViewModelType[typeof(FakeViewModelA)] = () => pageA;
         pageService.PageTypesByViewModelType[typeof(FakeViewModelB)] = typeof(FakePageB);
         pageService.PageFactoriesByViewModelType[typeof(FakeViewModelB)] = () => pageB;
         pageService.ViewModelInstancesByViewModelType[typeof(FakeViewModelB)] = vmB;
 
         var service = new NavigationService(pageService);
         service.Initialize(frame);
+
+        // The service only tracks pages it navigated to itself, so A has to be reached via NavigateTo to land on the back stack.
+        await NavigateAsync(service, typeof(FakeViewModelA));
 
         var forwardTask = service.NavigateTo(typeof(FakeViewModelB));
         DispatcherTestHelper.PumpUntil(() => forwardTask.IsCompleted);
@@ -254,5 +256,183 @@ public class NavigationServiceTests
         Assert.True(await navigateTask);
         Assert.False(startedRaised);
         Assert.False(completedRaised);
+    }
+
+    // Navigates and pumps the dispatcher until the navigation (including callbacks) has finished.
+    private static async Task<bool> NavigateAsync(NavigationService service, Type viewModelType, object? parameter = null)
+    {
+        var task = service.NavigateTo(viewModelType, parameter);
+        DispatcherTestHelper.PumpUntil(() => task.IsCompleted);
+        return await task;
+    }
+
+    private static async Task<bool> GoBackAsync(NavigationService service)
+    {
+        var task = service.GoBack();
+        DispatcherTestHelper.PumpUntil(() => task.IsCompleted);
+        return await task;
+    }
+
+    // Builds a resolution service for view models A and B. Scoped hands back the same page (and view model) every
+    // time; Transient builds a new page with a new view model on each resolve, as DI would.
+    private static FakePageResolutionService CreateLifetimeResolution(bool scoped, List<string> log, List<FakeNavigationAwareViewModel> createdA)
+    {
+        var service = new FakePageResolutionService();
+        service.PageTypesByViewModelType[typeof(FakeViewModelA)] = typeof(FakePageA);
+        service.PageTypesByViewModelType[typeof(FakeViewModelB)] = typeof(FakePageB);
+
+        FakePageA? scopedA = null;
+        service.PageFactoriesByViewModelType[typeof(FakeViewModelA)] = () =>
+        {
+            if (scoped && scopedA != null)
+            {
+                return scopedA;
+            }
+
+            var vm = new FakeNavigationAwareViewModel($"A{createdA.Count + 1}", log);
+            createdA.Add(vm);
+            return scopedA = new FakePageA { DataContext = vm };
+        };
+
+        var scopedB = new FakePageB { DataContext = new FakeNavigationAwareViewModel("B", log) };
+        service.PageFactoriesByViewModelType[typeof(FakeViewModelB)] = () => scoped
+            ? scopedB
+            : new FakePageB { DataContext = new FakeNavigationAwareViewModel("B", log) };
+
+        return service;
+    }
+
+    [StaFact]
+    public async Task GoBack_Scoped_ReturnsSamePageAndViewModelInstance()
+    {
+        var log = new List<string>();
+        var createdA = new List<FakeNavigationAwareViewModel>();
+        var frame = new Frame();
+        var service = new NavigationService(CreateLifetimeResolution(scoped: true, log, createdA));
+        service.Initialize(frame);
+
+        await NavigateAsync(service, typeof(FakeViewModelA));
+        var pageA = frame.Content;
+        await NavigateAsync(service, typeof(FakeViewModelB));
+        Assert.True(await GoBackAsync(service));
+
+        Assert.Same(pageA, frame.Content);
+        Assert.Single(createdA);
+    }
+
+    [StaFact]
+    public async Task GoBack_Transient_ReturnsNewInstanceAndNotifiesOldOne()
+    {
+        var log = new List<string>();
+        var createdA = new List<FakeNavigationAwareViewModel>();
+        var frame = new Frame();
+        var service = new NavigationService(CreateLifetimeResolution(scoped: false, log, createdA));
+        service.Initialize(frame);
+
+        await NavigateAsync(service, typeof(FakeViewModelA));
+        var pageA = frame.Content;
+        await NavigateAsync(service, typeof(FakeViewModelB));
+        Assert.Contains("A1.OnNavigatedFrom", log);
+
+        Assert.True(await GoBackAsync(service));
+
+        Assert.NotSame(pageA, frame.Content);
+        Assert.Equal(2, createdA.Count);
+        Assert.Same(createdA[1], ((FrameworkElement)frame.Content).DataContext);
+        Assert.Contains("A2.OnNavigatedTo", log);
+    }
+
+    [StaTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task NavigateTo_AToBToA_PushesEachLeftPage(bool scoped)
+    {
+        var log = new List<string>();
+        var service = new NavigationService(CreateLifetimeResolution(scoped, log, []));
+        var frame = new Frame();
+        service.Initialize(frame);
+
+        await NavigateAsync(service, typeof(FakeViewModelA));
+        await NavigateAsync(service, typeof(FakeViewModelB));
+        Assert.True(await NavigateAsync(service, typeof(FakeViewModelA)));
+        Assert.IsType<FakePageA>(frame.Content);
+
+        // Stack is now [A, B]: back lands on B, then on A, then there is nothing left.
+        Assert.True(await GoBackAsync(service));
+        Assert.IsType<FakePageB>(frame.Content);
+        Assert.True(await GoBackAsync(service));
+        Assert.IsType<FakePageA>(frame.Content);
+        Assert.False(service.CanGoBack);
+    }
+
+    [StaFact]
+    public async Task GoBack_PassesStoredParameterToDestination()
+    {
+        var log = new List<string>();
+        var vmA = new FakeNavigationAwareViewModel("A", log);
+        var pageService = new FakePageResolutionService();
+        pageService.PageTypesByViewModelType[typeof(FakeViewModelA)] = typeof(FakePageA);
+        pageService.PageFactoriesByViewModelType[typeof(FakeViewModelA)] = () => new FakePageA { DataContext = vmA };
+        pageService.PageTypesByViewModelType[typeof(FakeViewModelB)] = typeof(FakePageB);
+        pageService.PageFactoriesByViewModelType[typeof(FakeViewModelB)] = () => new FakePageB();
+        pageService.ViewModelInstancesByViewModelType[typeof(FakeViewModelB)] = new FakeNavigationAwareViewModel("B", log);
+        var service = new NavigationService(pageService);
+        service.Initialize(new Frame());
+
+        await NavigateAsync(service, typeof(FakeViewModelA), 1);
+        await NavigateAsync(service, typeof(FakeViewModelB), "other");
+        await GoBackAsync(service);
+
+        Assert.Equal(1, vmA.LastNavigatedToParameter);
+    }
+
+    [StaFact]
+    public async Task CanGoBack_TracksOwnBackStack()
+    {
+        var service = new NavigationService(CreateLifetimeResolution(scoped: true, [], []));
+        service.Initialize(new Frame());
+
+        await NavigateAsync(service, typeof(FakeViewModelA));
+        Assert.False(service.CanGoBack); // first page: nothing to return to
+
+        await NavigateAsync(service, typeof(FakeViewModelB));
+        Assert.True(service.CanGoBack);
+
+        service.IsNavigationLocked = true;
+        Assert.False(service.CanGoBack);
+        service.IsNavigationLocked = false;
+
+        await GoBackAsync(service);
+        Assert.False(service.CanGoBack);
+    }
+
+    [StaFact]
+    public async Task CleanNavigation_EmptiesBackStack()
+    {
+        var service = new NavigationService(CreateLifetimeResolution(scoped: true, [], []));
+        service.Initialize(new Frame());
+        await NavigateAsync(service, typeof(FakeViewModelA));
+        await NavigateAsync(service, typeof(FakeViewModelB));
+        Assert.True(service.CanGoBack);
+
+        service.CleanNavigation();
+
+        Assert.False(service.CanGoBack);
+        Assert.False(await GoBackAsync(service));
+    }
+
+    [StaFact]
+    public async Task Navigation_NeverLeavesEntriesInFrameJournal()
+    {
+        var frame = new Frame();
+        var service = new NavigationService(CreateLifetimeResolution(scoped: false, [], []));
+        service.Initialize(frame);
+
+        await NavigateAsync(service, typeof(FakeViewModelA));
+        await NavigateAsync(service, typeof(FakeViewModelB));
+        Assert.False(frame.CanGoBack);
+
+        await GoBackAsync(service);
+        Assert.False(frame.CanGoBack);
     }
 }

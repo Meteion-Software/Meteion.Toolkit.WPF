@@ -22,7 +22,13 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
     private readonly IPageResolutionService _pageService = pageService;
     private readonly ILogger<NavigationService>? _logger = logger;
     private Frame? _frame;
-    private object? _lastParameterUsed;
+
+    // The service owns the back stack rather than relying on Frame's journal, so old pages (and their view
+    // models) are never rooted by the frame. Entries hold only the type and parameter, never instances; going
+    // back resolves a fresh page/view model from IPageResolutionService (same instance for Scoped, new for Transient).
+    private readonly Stack<BackStackEntry> _backStack = new();
+    private Type? _currentViewModelType;
+    private object? _currentParameter;
 
     // State for the navigation currently in flight, bridging Frame's async Navigating/Navigated
     // events back to the awaiting NavigateTo/GoBack caller. Frame.Content is not guaranteed to
@@ -35,8 +41,11 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
     private NavigationDirection _pendingDirection;
     private TaskCompletionSource<bool>? _pendingNavigationTcs;
 
+    /// <summary>A page the user can return to: the view model type that was shown and the parameter it was navigated to with.</summary>
+    private sealed record BackStackEntry(Type ViewModelType, object? Parameter);
+
     /// <inheritdoc />
-    public bool CanGoBack => (_frame?.CanGoBack ?? false) && !IsNavigationLocked;
+    public bool CanGoBack => _backStack.Count > 0 && !IsNavigationLocked;
 
     /// <inheritdoc />
     public bool IsNavigationLocked { get; set; }
@@ -53,6 +62,7 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
     /// <inheritdoc />
     public void CleanNavigation()
     {
+        _backStack.Clear();
         _frame?.CleanNavigation();
     }
 
@@ -64,18 +74,40 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
             return false;
         }
 
-        _pendingNavigationParameter = null;
-        // GoBack has no "requested" view model type up front the way NavigateTo does; leave
-        // this null so OnFrameNavigated falls back to the resolved DataContext's runtime type.
-        _pendingViewModelType = null;
-        _pendingNavigationTcs = new TaskCompletionSource<bool>();
-        _navigationInFlight = true;
+        // Resolve before popping so a resolution failure leaves the stack untouched.
+        var entry = _backStack.Peek();
+        var page = _pageService.GetPageInstance(entry.ViewModelType);
+        page.DataContext ??= _pageService.GetViewModelInstance(entry.ViewModelType);
 
-        _frame.GoBack();
+        _backStack.Pop();
+        var leftType = _currentViewModelType;
+        var leftParameter = _currentParameter;
+        _currentViewModelType = entry.ViewModelType;
+        _currentParameter = entry.Parameter;
 
-        await _pendingNavigationTcs.Task;
+        _logger?.LogDebug("Navigating back to page with datacontext {dataContext} and parameter {parameter}", entry.ViewModelType, entry.Parameter);
 
-        return true;
+        BeginPendingNavigation(entry.ViewModelType, entry.Parameter, NavigationDirection.Back);
+
+        // A normal Navigate (not Frame.GoBack) so the frame never keeps a journal; the page being left is not pushed.
+        var navigated = false;
+        try
+        {
+            navigated = _frame.Navigate(page, entry.Parameter) && await _pendingNavigationTcs!.Task;
+        }
+        finally
+        {
+            if (!navigated)
+            {
+                // Cancelled, stopped or failed: put the popped entry back and keep the page we are still on.
+                CompletePendingNavigation(false);
+                _backStack.Push(entry);
+                _currentViewModelType = leftType;
+                _currentParameter = leftParameter;
+            }
+        }
+
+        return navigated;
     }
 
     /// <summary>
@@ -134,7 +166,7 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
         var pageType = _pageService.GetPageFor(viewModelType);
 
         // Make sure we aren't navigating to the same page with the same parameter. If we are, don't navigate and just return false.
-        if (_frame.Content?.GetType() != pageType || (navigationParameter != null && !navigationParameter.Equals(_lastParameterUsed)))
+        if (_frame.Content?.GetType() != pageType || (navigationParameter != null && !navigationParameter.Equals(_currentParameter)))
         {
             var page = _pageService.GetPageInstance(viewModelType);
             // page did not set datacontext in constructor; set for them. Otherwise it would have been automatically resolved by DI.
@@ -142,24 +174,37 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
 
             _logger?.LogDebug("Navigating to page of type {pageType} with datacontext {dataContext} and parameter {parameter}", pageType, viewModelType, navigationParameter);
 
-            _pendingNavigationParameter = navigationParameter;
-            _pendingViewModelType = viewModelType;
-            _pendingNavigationTcs = new TaskCompletionSource<bool>();
-            _navigationInFlight = true;
-
-            var navigated = _frame.Navigate(page, navigationParameter);
-            if (navigated)
+            // Push the page being left (if any) and make the new one current up front; undone below if the navigation doesn't complete.
+            var leftType = _currentViewModelType;
+            var leftParameter = _currentParameter;
+            if (leftType != null)
             {
-                _lastParameterUsed = navigationParameter;
-
-                await _pendingNavigationTcs.Task;
+                _backStack.Push(new BackStackEntry(leftType, leftParameter));
             }
-            else
+            _currentViewModelType = viewModelType;
+            _currentParameter = navigationParameter;
+
+            BeginPendingNavigation(viewModelType, navigationParameter, NavigationDirection.Forward);
+
+            var navigated = false;
+            try
             {
-                // Navigating was cancelled synchronously (e.g. by a NavigatingCancelEventHandler
-                // elsewhere) before Navigated could ever fire for it - unwind the pending state.
-                _navigationInFlight = false;
-                _pendingNavigationTcs = null;
+                navigated = _frame.Navigate(page, navigationParameter) && await _pendingNavigationTcs!.Task;
+            }
+            finally
+            {
+                if (!navigated)
+                {
+                    // Cancelled synchronously (e.g. by a NavigatingCancelEventHandler elsewhere), stopped, or failed -
+                    // Navigated never completed for it, so unwind the pending state and the stack.
+                    CompletePendingNavigation(false);
+                    if (leftType != null && _backStack.Count > 0)
+                    {
+                        _backStack.Pop();
+                    }
+                    _currentViewModelType = leftType;
+                    _currentParameter = leftParameter;
+                }
             }
 
             _logger?.LogDebug("Navigation success: {b}", navigated);
@@ -170,6 +215,15 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
         return false;
     }
 
+    private void BeginPendingNavigation(Type viewModelType, object? parameter, NavigationDirection direction)
+    {
+        _pendingNavigationParameter = parameter;
+        _pendingViewModelType = viewModelType;
+        _pendingDirection = direction;
+        _pendingNavigationTcs = new TaskCompletionSource<bool>();
+        _navigationInFlight = true;
+    }
+
     private void OnFrameNavigating(object sender, NavigatingCancelEventArgs e)
     {
         if (!_navigationInFlight || _frame == null)
@@ -177,8 +231,8 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
             return;
         }
 
+        // Direction is tracked by NavigateTo/GoBack: the frame always reports NavigationMode.New now that it keeps no journal.
         _pendingFromContext = _frame.GetDataContext();
-        _pendingDirection = e.NavigationMode == NavigationMode.Back ? NavigationDirection.Back : NavigationDirection.Forward;
     }
 
     private async void OnFrameNavigated(object sender, NavigationEventArgs e)
@@ -188,13 +242,16 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
             return;
         }
 
+        // The frame only ever holds the current page; drop the journal entry for the page just left so it is not rooted.
+        _frame.CleanNavigation();
+
         var currentContext = _frame.GetDataContext();
         var viewModelType = _pendingViewModelType ?? currentContext?.GetType() ?? typeof(object);
 
         try
         {
             await RaiseProgressAndAwait(
-                HandlePostNav(_pendingFromContext, currentContext),
+                HandlePostNav(_pendingFromContext, currentContext, _pendingNavigationParameter),
                 viewModelType,
                 _pendingNavigationParameter,
                 _pendingDirection);
@@ -251,9 +308,9 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
         }
     }
 
-    // Runs the leave callbacks on the old view model, then the enter callbacks on the new one. Note the parameter
-    // passed to OnNavigatedTo is the last one used for a forward navigation, including after GoBack.
-    private async Task HandlePostNav(object? lastContext, object? currentContext)
+    // Runs the leave callbacks on the old view model, then the enter callbacks on the new one. The parameter passed
+    // to OnNavigatedTo is the one the destination was originally navigated with, including after GoBack.
+    private async Task HandlePostNav(object? lastContext, object? currentContext, object? navigationParameter)
     {
         if (lastContext is INavigationAwareViewModel lastNavAware)
         {
@@ -265,11 +322,11 @@ public class NavigationService(IPageResolutionService pageService, ILogger<Navig
         }
         if (currentContext is INavigationAwareViewModel currentNavAware)
         {
-            currentNavAware.OnNavigatedTo(_lastParameterUsed);
+            currentNavAware.OnNavigatedTo(navigationParameter);
         }
         if (currentContext is IAsyncNavigationAwareViewModel currentAsyncNavAware)
         {
-            await currentAsyncNavAware.OnNavigatedToAsync(_lastParameterUsed);
+            await currentAsyncNavAware.OnNavigatedToAsync(navigationParameter);
         }
     }
 }

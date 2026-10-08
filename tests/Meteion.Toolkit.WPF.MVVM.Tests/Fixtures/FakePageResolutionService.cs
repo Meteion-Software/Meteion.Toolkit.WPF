@@ -23,7 +23,7 @@ public class FakePageResolutionService : IPageResolutionService
     public Dictionary<Type, Func<Page>> PageFactoriesByViewModelType { get; } = new();
     public Dictionary<Type, object> ViewModelInstancesByViewModelType { get; } = new();
 
-    public void AddPage<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    public void AddPage<T_ViewModel, T_View>(ServiceLifetime? lifetime = null)
         where T_ViewModel : INotifyPropertyChanged
         where T_View : Page
         => throw new NotImplementedException();

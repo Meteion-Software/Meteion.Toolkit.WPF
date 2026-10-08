@@ -38,11 +38,13 @@ public interface INavigationService
     Task<bool> NavigateTo(Type viewModel, object? navigationParameter = null);
 
     /// <summary>
-    /// Navigates to the previous page in the frame's history.
+    /// Navigates to the previous page. The service keeps its own back stack of view model types and parameters
+    /// (not page instances), so the page and view model are resolved again: the same instances for Scoped
+    /// registrations, new ones for Transient. The destination receives the parameter it was originally navigated with.
     /// </summary>
     /// <returns><see langword="true"/> if navigation occurred; otherwise <see langword="false"/>.</returns>
     Task<bool> GoBack();
 
-    /// <summary>Clears the frame's navigation history.</summary>
+    /// <summary>Clears the back stack so the user cannot navigate back past the current page.</summary>
     void CleanNavigation();
 }

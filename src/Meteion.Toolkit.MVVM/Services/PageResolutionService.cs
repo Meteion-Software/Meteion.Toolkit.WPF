@@ -42,7 +42,7 @@ public class PageResolutionService(IServiceProvider serviceProvider) : IPageReso
     /// <exception cref="ArgumentException">The view model or the page is already registered.</exception>
     /// <inheritdoc />
     /// <exception cref="ArgumentException">The view model or the page is already registered.</exception>
-    public void AddPage<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    public void AddPage<T_ViewModel, T_View>(ServiceLifetime? lifetime = null)
         where T_ViewModel : INotifyPropertyChanged
         where T_View : Page
     {
@@ -60,7 +60,7 @@ public class PageResolutionService(IServiceProvider serviceProvider) : IPageReso
                 throw new ArgumentException($"This type is already configured with key {_pages.First(p => p.Value.PageType == type).Key}", nameof(type));
             }
 
-            _pages.Add(key, new ViewModelRecord(type, lifetime));
+            _pages.Add(key, new ViewModelRecord(type, ViewModelLifetime.Resolve(key, lifetime, ServiceLifetime.Transient)));
         }
     }
 

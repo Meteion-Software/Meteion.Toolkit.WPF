@@ -2,8 +2,12 @@
 using Meteion.Toolkit.MVVM.Services;
 using Meteion.Toolkit.WPF.MVVM.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -44,8 +48,8 @@ public static class ServiceCollectionExtensions
         // Now ensure all view models and views are registered in DI
         foreach (var view in views)
         {
-            services.Add(new ServiceDescriptor(view.Key, view.Key, view.Value.Lifetime));
-            services.Add(new ServiceDescriptor(view.Value.PageType, view.Value.PageType, view.Value.Lifetime));
+            services.TryAdd(new ServiceDescriptor(view.Key, view.Key, view.Value.Lifetime));
+            services.TryAdd(new ServiceDescriptor(view.Value.PageType, view.Value.PageType, view.Value.Lifetime));
         }
 
         return services;
@@ -79,8 +83,41 @@ public static class ServiceCollectionExtensions
         // Now ensure all view models and views are registered in DI
         foreach (var view in views)
         {
-            services.Add(new ServiceDescriptor(view.Key, view.Key, view.Value.Lifetime));
-            services.Add(new ServiceDescriptor(view.Value.PageType, view.Value.PageType, view.Value.Lifetime));
+            services.TryAdd(new ServiceDescriptor(view.Key, view.Key, view.Value.Lifetime));
+            services.TryAdd(new ServiceDescriptor(view.Value.PageType, view.Value.PageType, view.Value.Lifetime));
+        }
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers every concrete <see cref="INotifyPropertyChanged"/> type in <paramref name="assembly"/> whose namespace
+    /// matches <paramref name="namespaceRegex"/> as itself. This is for view models that have no page of their own, such as
+    /// those rendered through data templates or shown in dialogs. The lifetime comes from
+    /// <see cref="ViewModelOptionsAttribute"/> and is Scoped when the attribute is absent. Types that are already
+    /// registered are left untouched.
+    /// </summary>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="assembly">The assembly to scan.</param>
+    /// <param name="namespaceRegex">Only types whose namespace matches this expression are registered.</param>
+    /// <param name="mustEndInViewModel">When true, only types whose name ends in "ViewModel" are registered.</param>
+    /// <returns>The same service collection, for chaining.</returns>
+    public static IServiceCollection AddViewModelsFoundIn(this IServiceCollection services, Assembly assembly, Regex namespaceRegex, bool mustEndInViewModel = true)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(assembly);
+        ArgumentNullException.ThrowIfNull(namespaceRegex);
+
+        var viewModelTypes = assembly.GetTypes().Where(t =>
+            typeof(INotifyPropertyChanged).IsAssignableFrom(t)
+            && !t.IsAbstract
+            && !t.IsInterface
+            && namespaceRegex.IsMatch(t.Namespace ?? string.Empty)
+            && (!mustEndInViewModel || t.Name.EndsWith("ViewModel", StringComparison.Ordinal)));
+
+        foreach (var viewModelType in viewModelTypes)
+        {
+            services.TryAdd(new ServiceDescriptor(viewModelType, viewModelType, ViewModelLifetime.Resolve(viewModelType, null)));
         }
 
         return services;

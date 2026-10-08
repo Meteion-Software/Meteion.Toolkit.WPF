@@ -53,7 +53,7 @@ public class WindowResolutionService(IServiceProvider serviceProvider) : IWindow
     /// <exception cref="ArgumentException">The view model or the window is already registered.</exception>
     /// <inheritdoc />
     /// <exception cref="ArgumentException">The view model or the window is already registered.</exception>
-    public void AddWindow<T_ViewModel, T_View>(ServiceLifetime lifetime = ServiceLifetime.Transient)
+    public void AddWindow<T_ViewModel, T_View>(ServiceLifetime? lifetime = null)
         where T_ViewModel : INotifyPropertyChanged
         where T_View : Window
     {
@@ -71,7 +71,7 @@ public class WindowResolutionService(IServiceProvider serviceProvider) : IWindow
                 throw new ArgumentException($"This type is already configured with key {_windows.First(p => p.Value.PageType == type).Key}", nameof(type));
             }
 
-            _windows.Add(key, new ViewModelRecord(type, lifetime));
+            _windows.Add(key, new ViewModelRecord(type, ViewModelLifetime.Resolve(key, lifetime, ServiceLifetime.Transient)));
         }
     }
 
